@@ -179,6 +179,7 @@ DisplayBoard PROC
 	mov ECX, [EBP + 8]; boardlength in ECX
 	mov EDX, OFFSET space1
 	call WriteString
+
 	mov EDX, OFFSET space2
 	call WriteString
 
