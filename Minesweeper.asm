@@ -48,13 +48,12 @@ main PROC
 	push eax
 	call generation
 
-	mov ESI, OFFSET board
 	gameLoop:
 		call userInput
 		call checkLocation
 		call checkWin
 
-		push OFFSET board
+		mov ESI, OFFSET board
 		push game_state
 		push boardlength
 		call DisplayBoard
@@ -270,7 +269,7 @@ DisplayBoard PROC
 	endOfProc:
 		popad
 		pop EBP
-		ret 16
+		ret 8
 DisplayBoard ENDP
 
 
