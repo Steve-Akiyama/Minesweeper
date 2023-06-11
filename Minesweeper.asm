@@ -113,9 +113,22 @@ underscore  BYTE   "---", 0
 space2         BYTE   " ", 0
 mine		BYTE   "*", 0
 
-
+;FPU variables 
+x     REAL4   1.12
+y     REAL4   2.23
+fpu_msg  BYTE   "FPU usage: ",0
 .code
 main PROC
+
+finit
+fld x
+fld y
+fadd
+
+mov EDX, OFFSET fpu_msg
+call WriteString
+call WriteFloat
+call crlf
 
 call introduction
 call getData

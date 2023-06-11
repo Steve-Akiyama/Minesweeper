@@ -1,4 +1,4 @@
-Microsoft (R) Macro Assembler Version 14.35.32215.0	    06/11/23 14:12:16
+Microsoft (R) Macro Assembler Version 14.35.32215.0	    06/11/23 14:26:18
 Minesweeper(Minesweeper.asm				     Page 1 - 1
 
 
@@ -248,89 +248,104 @@ Microsoft (R) Macro Assembler Version 14.35.32215.0	    06/11/23 14:12:16
  0000108B 20 00			space2         BYTE   " ", 0
  0000108D 2A 00			mine		BYTE   "*", 0
 
-
+				;FPU variables 
+ 0000108F 3F8F5C29		x     REAL4   1.12
+ 00001093 400EB852		y     REAL4   2.23
+ 00001097 46 50 55 20 75	fpu_msg  BYTE   "FPU usage: ",0
+	   73 61 67 65 3A
+	   20 00
  00000000			.code
  00000000			main PROC
 
- 00000000  E8 000000D0		call introduction
- 00000005  E8 000000F4		call getData
+ 00000000  9B DB E3		finit
+ 00000003  D9 05 0000108F R	fld x
+ 00000009  D9 05 00001093 R	fld y
+ 0000000F  DE C1		fadd
 
- 0000000A  A1 00000255 R		mov eax, boardsize
- 0000000F  50				push eax
- 00000010  A1 0000025D R		mov eax, difficulty
- 00000015  50				push eax
- 00000016  E8 0000018C			call generation
+ 00000011  BA 00001097 R	mov EDX, OFFSET fpu_msg
+ 00000016  E8 00000000 E	call WriteString
+ 0000001B  E8 00000000 E	call WriteFloat
+ 00000020  E8 00000000 E	call crlf
+
+ 00000025  E8 000000D0		call introduction
+ 0000002A  E8 000000F4		call getData
+
+ 0000002F  A1 00000255 R		mov eax, boardsize
+ 00000034  50				push eax
+ 00000035  A1 0000025D R		mov eax, difficulty
+ 0000003A  50				push eax
+ 0000003B  E8 0000018C			call generation
 					
- 0000001B				gameLoop :
+ 00000040				gameLoop :
 
 						;push OFFSET board
 						;push boardsize
 						;call displayList
- 0000001B  BE 0000026D R			mov ESI, OFFSET board
- 00000020  FF 35 00000265 R			push game_state
- 00000026  FF 35 00000259 R			push boardlength
- 0000002C  E8 00000462				call DisplayBoard
+ 00000040  BE 0000026D R			mov ESI, OFFSET board
+ 00000045  FF 35 00000265 R			push game_state
+ 0000004B  FF 35 00000259 R			push boardlength
+ 00000051  E8 00000462				call DisplayBoard
 
- 00000031  E8 000001AD				call userInput
+ 00000056  E8 000001AD				call userInput
 
- 00000036  FF 35 00000269 R			push target
- 0000003C  E8 00000202				call checkLocation
+ 0000005B  FF 35 00000269 R			push target
+ 00000061  E8 00000202				call checkLocation
 
- 00000041  E8 00000428				call checkWin
+ 00000066  E8 00000428				call checkWin
 
- 00000046  83 3D 00000265 R			cmp game_state, 1
+ 0000006B  83 3D 00000265 R			cmp game_state, 1
 	   01
- 0000004D  74 CC				je gameLoop
- 0000004F  7C 02				jl hitMine
- 00000051  7F 16				jg wonGame
+ 00000072  74 CC				je gameLoop
+ 00000074  7C 02				jl hitMine
+ 00000076  7F 16				jg wonGame
 
- 00000053				hitMine:
- 00000053  E8 00000000 E			call crlf
- 00000058  BA 000001CE R			mov edx, offset gameLoss
- 0000005D  E8 00000000 E			call writestring
- 00000062  E8 00000000 E			call crlf
- 00000067  EB 14				jmp done
-
- 00000069				wonGame:
- 00000069  E8 00000000 E			call crlf
- 0000006E  BA 000001FF R			mov edx, offset gameWin
- 00000073  E8 00000000 E			call writestring
+ 00000078				hitMine:
  00000078  E8 00000000 E			call crlf
+ 0000007D  BA 000001CE R			mov edx, offset gameLoss
+ 00000082  E8 00000000 E			call writestring
+ 00000087  E8 00000000 E			call crlf
+ 0000008C  EB 14				jmp done
 
- 0000007D				done:
- 0000007D  BE 0000026D R			mov ESI, OFFSET board
- 00000082  FF 35 00000265 R			push game_state
- 00000088  FF 35 00000259 R			push boardlength
- 0000008E  E8 00000400				call DisplayBoard
+ 0000008E				wonGame:
+ 0000008E  E8 00000000 E			call crlf
+ 00000093  BA 000001FF R			mov edx, offset gameWin
+ 00000098  E8 00000000 E			call writestring
+ 0000009D  E8 00000000 E			call crlf
+
+ 000000A2				done:
+ 000000A2  BE 0000026D R			mov ESI, OFFSET board
+ 000000A7  FF 35 00000265 R			push game_state
+ 000000AD  FF 35 00000259 R			push boardlength
+ 000000B3  E8 00000400				call DisplayBoard
 
 				exit
- 00000093  6A 00	   *	    push   +000000000h
- 00000095  E8 00000000 E   *	    call   ExitProcess
- 0000009A			main ENDP
+ 000000B8  6A 00	   *	    push   +000000000h
+ 000000BA  E8 00000000 E   *	    call   ExitProcess
+ 000000BF			main ENDP
 
- 0000009A			displayList PROC
- 0000009A  55			push ebp
- 0000009B  8B EC		mov  ebp, esp
- 0000009D  BB 00000000		mov	 ebx, 0
- 000000A2  8B 75 0C		mov  esi, [ebp + 12]
- 000000A5  8B 4D 08		mov	 ecx, [ebp + 8]
- 000000A8			displayLoop :
- 000000A8  8B 06		mov		eax, [esi]
- 000000AA  E8 00000000 E	call	WriteDec
- 000000AF  BA 0000107D R	mov		edx, OFFSET space1
- 000000B4  E8 00000000 E	call	WriteString
- 000000B9  43			inc		ebx
- 000000BA  3B 1D 00000259 R	cmp		ebx, boardlength
- 000000C0  7C 0A		jl		skipCarry
- 000000C2  E8 00000000 E	call	CrLf
- 000000C7  BB 00000000		mov		ebx, 0
- 000000CC			skipCarry:
- 000000CC  83 C6 04		add		esi, 4
- 000000CF  E2 D7		loop	displayLoop
- 000000D1			endDisplayLoop :
- 000000D1  5D			pop		ebp
- 000000D2  C2 0008		ret		8
- 000000D5			displayList ENDP
+ 000000BF			displayList PROC
+ 000000BF  55			push ebp
+ 000000C0  8B EC		mov  ebp, esp
+ 000000C2  BB 00000000		mov	 ebx, 0
+ 000000C7  8B 75 0C		mov  esi, [ebp + 12]
+ 000000CA  8B 4D 08		mov	 ecx, [ebp + 8]
+ 000000CD			displayLoop :
+ 000000CD  8B 06		mov		eax, [esi]
+ 000000CF  E8 00000000 E	call	WriteDec
+ 000000D4  BA 0000107D R	mov		edx, OFFSET space1
+ 000000D9  E8 00000000 E	call	WriteString
+ 000000DE  43			inc		ebx
+ 000000DF  3B 1D 00000259 R	cmp		ebx, boardlength
+ 000000E5  7C 0A		jl		skipCarry
+ 000000E7  E8 00000000 E	call	CrLf
+ 000000EC  BB 00000000		mov		ebx, 0
+ 000000F1			skipCarry:
+ 000000F1  83 C6 04		add		esi, 4
+ 000000F4  E2 D7		loop	displayLoop
+ 000000F6			endDisplayLoop :
+ 000000F6  5D			pop		ebp
+ 000000F7  C2 0008		ret		8
+ 000000FA			displayList ENDP
 
 				; ******************************************************************************************************
 				; INTRODUCTION PROCEDURE :
@@ -341,135 +356,135 @@ Microsoft (R) Macro Assembler Version 14.35.32215.0	    06/11/23 14:12:16
 				; Registers Changed : edx,
 				; ******************************************************************************************************
 
- 000000D5			introduction PROC
- 000000D5  E8 00000000 E	call Randomize
- 000000DA  E8 00000000 E	call CrLf
- 000000DF  BA 00000000 R	mov edx, OFFSET welcome
- 000000E4  E8 00000000 E	call WriteString
- 000000E9  E8 00000000 E	call CrLf
+ 000000FA			introduction PROC
+ 000000FA  E8 00000000 E	call Randomize
+ 000000FF  E8 00000000 E	call CrLf
+ 00000104  BA 00000000 R	mov edx, OFFSET welcome
+ 00000109  E8 00000000 E	call WriteString
+ 0000010E  E8 00000000 E	call CrLf
 
- 000000EE  BA 0000003D R	mov	edx, OFFSET instructions_1
- 000000F3  E8 00000000 E	call WriteString
- 000000F8  E8 00000000 E	call CrLf
- 000000FD  C3			ret
+ 00000113  BA 0000003D R	mov	edx, OFFSET instructions_1
+ 00000118  E8 00000000 E	call WriteString
+ 0000011D  E8 00000000 E	call CrLf
+ 00000122  C3			ret
 
- 000000FE			introduction ENDP
+ 00000123			introduction ENDP
 
- 000000FE			getData PROC
- 000000FE  60				pushad
- 000000FF				getInputs :
- 000000FF  BA 00000069 R			mov	edx, OFFSET instructions_2
- 00000104  E8 00000000 E			call WriteString
- 00000109  E8 00000000 E			call crlf
- 0000010E  E8 00000000 E			call ReadInt
- 00000113  83 F8 08				cmp eax, BOARD_MINSIZE
- 00000116  7C E7				jl getInputs
- 00000118  83 F8 1E				cmp eax, BOARD_MAXSIZE
- 0000011B  7F E2				jg getInputs
- 0000011D  A3 00000259 R			mov boardlength, eax
- 00000122  F7 25 00000259 R			mul boardlength
- 00000128  A3 00000255 R			mov boardsize, eax
- 0000012D				getDifficulty:
+ 00000123			getData PROC
+ 00000123  60				pushad
+ 00000124				getInputs :
+ 00000124  BA 00000069 R			mov	edx, OFFSET instructions_2
+ 00000129  E8 00000000 E			call WriteString
+ 0000012E  E8 00000000 E			call crlf
+ 00000133  E8 00000000 E			call ReadInt
+ 00000138  83 F8 08				cmp eax, BOARD_MINSIZE
+ 0000013B  7C E7				jl getInputs
+ 0000013D  83 F8 1E				cmp eax, BOARD_MAXSIZE
+ 00000140  7F E2				jg getInputs
+ 00000142  A3 00000259 R			mov boardlength, eax
+ 00000147  F7 25 00000259 R			mul boardlength
+ 0000014D  A3 00000255 R			mov boardsize, eax
+ 00000152				getDifficulty:
 						print instructions_5
- 0000012D  E8 00000000 E     1		call crlf
- 00000132  BA 000000FA R     1		mov edx, offset instructions_5
- 00000137  E8 00000000 E     1		call writestring
+ 00000152  E8 00000000 E     1		call crlf
+ 00000157  BA 000000FA R     1		mov edx, offset instructions_5
+ 0000015C  E8 00000000 E     1		call writestring
 						print instructions_6
- 0000013C  E8 00000000 E     1		call crlf
- 00000141  BA 00000127 R     1		mov edx, offset instructions_6
- 00000146  E8 00000000 E     1		call writestring
+ 00000161  E8 00000000 E     1		call crlf
+ 00000166  BA 00000127 R     1		mov edx, offset instructions_6
+ 0000016B  E8 00000000 E     1		call writestring
 						print instructions_7
- 0000014B  E8 00000000 E     1		call crlf
- 00000150  BA 0000013E R     1		mov edx, offset instructions_7
- 00000155  E8 00000000 E     1		call writestring
+ 00000170  E8 00000000 E     1		call crlf
+ 00000175  BA 0000013E R     1		mov edx, offset instructions_7
+ 0000017A  E8 00000000 E     1		call writestring
 						print instructions_8
- 0000015A  E8 00000000 E     1		call crlf
- 0000015F  BA 0000015E R     1		mov edx, offset instructions_8
- 00000164  E8 00000000 E     1		call writestring
+ 0000017F  E8 00000000 E     1		call crlf
+ 00000184  BA 0000015E R     1		mov edx, offset instructions_8
+ 00000189  E8 00000000 E     1		call writestring
 						print instructions_9
- 00000169  E8 00000000 E     1		call crlf
- 0000016E  BA 00000178 R     1		mov edx, offset instructions_9
- 00000173  E8 00000000 E     1		call writestring
+ 0000018E  E8 00000000 E     1		call crlf
+ 00000193  BA 00000178 R     1		mov edx, offset instructions_9
+ 00000198  E8 00000000 E     1		call writestring
 						print instructions_10
- 00000178  E8 00000000 E     1		call crlf
- 0000017D  BA 0000019A R     1		mov edx, offset instructions_10
- 00000182  E8 00000000 E     1		call writestring
- 00000187  E8 00000000 E			call crlf
- 0000018C  E8 00000000 E			call readint
- 00000191  83 F8 01				cmp eax, 1
- 00000194  7C 97				jl getDifficulty
- 00000196  83 F8 04				cmp eax, 4
- 00000199  7F 92				jg getDifficulty
- 0000019B  A3 0000025D R			mov difficulty, eax
- 000001A0  E8 00000000 E			call crlf
- 000001A5  61				popad
- 000001A6  C3				ret
- 000001A7			getData ENDP
+ 0000019D  E8 00000000 E     1		call crlf
+ 000001A2  BA 0000019A R     1		mov edx, offset instructions_10
+ 000001A7  E8 00000000 E     1		call writestring
+ 000001AC  E8 00000000 E			call crlf
+ 000001B1  E8 00000000 E			call readint
+ 000001B6  83 F8 01				cmp eax, 1
+ 000001B9  7C 97				jl getDifficulty
+ 000001BB  83 F8 04				cmp eax, 4
+ 000001BE  7F 92				jg getDifficulty
+ 000001C0  A3 0000025D R			mov difficulty, eax
+ 000001C5  E8 00000000 E			call crlf
+ 000001CA  61				popad
+ 000001CB  C3				ret
+ 000001CC			getData ENDP
 
- 000001A7			generation PROC
- 000001A7  8B EC			mov ebp, esp
- 000001A9  8B 4D 04			mov ecx, [ebp + 4]; Address of difficulty
- 000001AC  8B 45 08			mov eax, [ebp + 8]; Address of how many tiles are available
- 000001AF  60				pushad
+ 000001CC			generation PROC
+ 000001CC  8B EC			mov ebp, esp
+ 000001CE  8B 4D 04			mov ecx, [ebp + 4]; Address of difficulty
+ 000001D1  8B 45 08			mov eax, [ebp + 8]; Address of how many tiles are available
+ 000001D4  60				pushad
 
- 000001B0  BB 00000007			mov ebx, 7
- 000001B5  2B D9			sub ebx, ecx
- 000001B7  99				cdq
- 000001B8  F7 F3			div ebx
- 000001BA  8B C8			mov ecx, eax
- 000001BC  8B 5D 08			mov ebx, [ebp + 8]
+ 000001D5  BB 00000007			mov ebx, 7
+ 000001DA  2B D9			sub ebx, ecx
+ 000001DC  99				cdq
+ 000001DD  F7 F3			div ebx
+ 000001DF  8B C8			mov ecx, eax
+ 000001E1  8B 5D 08			mov ebx, [ebp + 8]
 
- 000001BF				generateMineLoop :
- 000001BF  8B C3				mov eax, ebx
- 000001C1  E8 00000000 E			call RandomRange
- 000001C6  83 3C 85				cmp board[eax * 4], SPACE_INI
+ 000001E4				generateMineLoop :
+ 000001E4  8B C3				mov eax, ebx
+ 000001E6  E8 00000000 E			call RandomRange
+ 000001EB  83 3C 85				cmp board[eax * 4], SPACE_INI
 	   0000026D R 0A
- 000001CE  74 02				je nextMine
- 000001D0  EB ED				jmp generateMineLoop
- 000001D2					nextMine :
- 000001D2  C7 04 85				mov board[eax * 4], MINE_IDX
+ 000001F3  74 02				je nextMine
+ 000001F5  EB ED				jmp generateMineLoop
+ 000001F7					nextMine :
+ 000001F7  C7 04 85				mov board[eax * 4], MINE_IDX
 	   0000026D R
 	   00000009
- 000001DD  E2 E0				loop generateMineLoop
+ 00000202  E2 E0				loop generateMineLoop
 
- 000001DF  61				popad
- 000001E0  C2 0008			ret 8
- 000001E3			generation ENDP
+ 00000204  61				popad
+ 00000205  C2 0008			ret 8
+ 00000208			generation ENDP
 
- 000001E3			userInput PROC
- 000001E3  60				pushad
- 000001E4  E8 00000000 E		call crlf
- 000001E9  E8 00000000 E		call crlf
+ 00000208			userInput PROC
+ 00000208  60				pushad
+ 00000209  E8 00000000 E		call crlf
+ 0000020E  E8 00000000 E		call crlf
 
- 000001EE				getInput1 : ; Get the column
- 000001EE  BA 0000008D R			mov	edx, OFFSET instructions_3
- 000001F3  E8 00000000 E			call WriteString
- 000001F8  E8 00000000 E			call crlf
- 000001FD  E8 00000000 E			call ReadInt
- 00000202  83 F8 01				cmp eax, 1
- 00000205  7C E7				jl getInput1
- 00000207  3B 05 00000259 R			cmp eax, boardlength
- 0000020D  7F DF				jg getInput1
- 0000020F  48					dec eax
- 00000210  8B D8				mov ebx, eax
- 00000212				getInput2 : ; Get the row
- 00000212  BA 000000C5 R			mov	edx, OFFSET instructions_4
- 00000217  E8 00000000 E			call WriteString
- 0000021C  E8 00000000 E			call crlf
- 00000221  E8 00000000 E			call ReadInt
- 00000226  83 F8 01				cmp eax, 1
- 00000229  7C E7				jl getInput2
- 0000022B  3B 05 00000259 R			cmp eax, boardlength
- 00000231  7F DF				jg getInput2
- 00000233  48					dec eax
- 00000234  F7 25 00000259 R			mul boardlength
+ 00000213				getInput1 : ; Get the column
+ 00000213  BA 0000008D R			mov	edx, OFFSET instructions_3
+ 00000218  E8 00000000 E			call WriteString
+ 0000021D  E8 00000000 E			call crlf
+ 00000222  E8 00000000 E			call ReadInt
+ 00000227  83 F8 01				cmp eax, 1
+ 0000022A  7C E7				jl getInput1
+ 0000022C  3B 05 00000259 R			cmp eax, boardlength
+ 00000232  7F DF				jg getInput1
+ 00000234  48					dec eax
+ 00000235  8B D8				mov ebx, eax
+ 00000237				getInput2 : ; Get the row
+ 00000237  BA 000000C5 R			mov	edx, OFFSET instructions_4
+ 0000023C  E8 00000000 E			call WriteString
+ 00000241  E8 00000000 E			call crlf
+ 00000246  E8 00000000 E			call ReadInt
+ 0000024B  83 F8 01				cmp eax, 1
+ 0000024E  7C E7				jl getInput2
+ 00000250  3B 05 00000259 R			cmp eax, boardlength
+ 00000256  7F DF				jg getInput2
+ 00000258  48					dec eax
+ 00000259  F7 25 00000259 R			mul boardlength
 
- 0000023A  03 C3			add eax, ebx
- 0000023C  A3 00000269 R		mov target, eax
+ 0000025F  03 C3			add eax, ebx
+ 00000261  A3 00000269 R		mov target, eax
 
- 00000241  61				popad
- 00000242  C3				ret
- 00000243			userInput ENDP
+ 00000266  61				popad
+ 00000267  C3				ret
+ 00000268			userInput ENDP
 
 				;******************************************************************************************************
 				; checkLocation PROCEDURE :
@@ -480,181 +495,181 @@ Microsoft (R) Macro Assembler Version 14.35.32215.0	    06/11/23 14:12:16
 				; Registers Changed : N / A
 				; ******************************************************************************************************
 
- 00000243			checkLocation PROC
- 00000243  8B EC			mov ebp, esp
- 00000245  60				pushad
- 00000246  8B 5D 04			mov ebx, [ebp + 4]; move target to ebx
+ 00000268			checkLocation PROC
+ 00000268  8B EC			mov ebp, esp
+ 0000026A  60				pushad
+ 0000026B  8B 5D 04			mov ebx, [ebp + 4]; move target to ebx
 
- 00000249  8B C3			mov eax, ebx
+ 0000026E  8B C3			mov eax, ebx
 					;call crlf
 					;call writeint
 					;call crlf
 
- 0000024B  B9 00000000			mov ecx, 0 ;mine counter
+ 00000270  B9 00000000			mov ecx, 0 ;mine counter
 
- 00000250  83 3C 9D			cmp board[ebx * 4], 0
+ 00000275  83 3C 9D			cmp board[ebx * 4], 0
 	   0000026D R 00
- 00000258  0F 84 0000020C		je done ;if this tile has already been checked, then dont check it again
- 0000025E  83 3C 9D			cmp board[ebx * 4], 9
+ 0000027D  0F 84 0000020C		je done ;if this tile has already been checked, then dont check it again
+ 00000283  83 3C 9D			cmp board[ebx * 4], 9
 	   0000026D R 09
- 00000266  0F 84 000001F4		je died ;TODO: Add a loss condition! The player hit a mine LOL
+ 0000028B  0F 84 000001F4		je died ;TODO: Add a loss condition! The player hit a mine LOL
 					
- 0000026C				checkRight:
+ 00000291				checkRight:
 
 						checkR boardlength
- 0000026C  8B C3	     1		mov eax, ebx
- 0000026E  40		     1		inc eax
- 0000026F  99		     1		cdq
- 00000270  F7 35 00000259 R  1		div boardlength; Dividing to check if it is out of range
- 00000276  83 FA 00				cmp edx, 0
- 00000279  74 2C				je checkUp ;If it is out of range, jump to up (UpRight will also be out of range)
+ 00000291  8B C3	     1		mov eax, ebx
+ 00000293  40		     1		inc eax
+ 00000294  99		     1		cdq
+ 00000295  F7 35 00000259 R  1		div boardlength; Dividing to check if it is out of range
+ 0000029B  83 FA 00				cmp edx, 0
+ 0000029E  74 2C				je checkUp ;If it is out of range, jump to up (UpRight will also be out of range)
 						
- 0000027B  8B C3				mov eax, ebx
- 0000027D  40					inc eax
+ 000002A0  8B C3				mov eax, ebx
+ 000002A2  40					inc eax
 
 						;Check if the space is a mine
- 0000027E  83 3C 85				cmp board[eax * 4], MINE_IDX
+ 000002A3  83 3C 85				cmp board[eax * 4], MINE_IDX
 	   0000026D R 09
- 00000286  75 01				jne checkUpRight ;if it is not a mine, jump to next check
+ 000002AB  75 01				jne checkUpRight ;if it is not a mine, jump to next check
 
- 00000288  41					inc ecx ;increment the mine counter
+ 000002AD  41					inc ecx ;increment the mine counter
 
- 00000289				checkUpRight:
+ 000002AE				checkUpRight:
 
 						checkUR boardlength
- 00000289  8B C3	     1	mov eax, ebx
+ 000002AE  8B C3	     1	mov eax, ebx
 							
 						; Range check
- 0000028B  3B 05 00000259 R			cmp eax, boardLength
- 00000291  7C 56				jl checkLeft; We can skip checking all above indexes, as none will be accessable
+ 000002B0  3B 05 00000259 R			cmp eax, boardLength
+ 000002B6  7C 56				jl checkLeft; We can skip checking all above indexes, as none will be accessable
 
- 00000293  8B C3				mov eax, ebx
- 00000295  2B 05 00000259 R			sub eax, boardLength
- 0000029B  40					inc eax
+ 000002B8  8B C3				mov eax, ebx
+ 000002BA  2B 05 00000259 R			sub eax, boardLength
+ 000002C0  40					inc eax
 
- 0000029C  83 3C 85				cmp board[eax * 4], MINE_IDX
+ 000002C1  83 3C 85				cmp board[eax * 4], MINE_IDX
 	   0000026D R 09
- 000002A4  75 01				jne checkUp
+ 000002C9  75 01				jne checkUp
 
- 000002A6  41					inc ecx
+ 000002CB  41					inc ecx
 
- 000002A7				checkUp:
+ 000002CC				checkUp:
 						; Sets eax to starting address
 						checkU boardlength
- 000002A7  8B C3	     1	mov eax, ebx
+ 000002CC  8B C3	     1	mov eax, ebx
 
 						; Range check
- 000002A9  3B 05 00000259 R			cmp eax, boardLength
- 000002AF  7C 38				jl checkLeft; We can skip checking all above indexes, as none will be accessable
+ 000002CE  3B 05 00000259 R			cmp eax, boardLength
+ 000002D4  7C 38				jl checkLeft; We can skip checking all above indexes, as none will be accessable
 
- 000002B1  8B C3				mov eax, ebx
- 000002B3  2B 05 00000259 R			sub eax, boardLength
-
- 000002B9  83 3C 85				cmp board[eax * 4], MINE_IDX
-	   0000026D R 09
- 000002C1  75 01				jne checkUpLeft
-
- 000002C3  41					inc ecx
-
- 000002C4				checkUpLeft:
-						checkUL boardlength
- 000002C4  8B C3	     1	mov eax, ebx
- 000002C6  99		     1	cdq
- 000002C7  F7 35 00000259 R  1	div boardlength
- 000002CD  83 FA 00	     1	cmp edx, 0
- 000002D0  83 FA 00				cmp edx, 0
- 000002D3  74 54				je checkDown ;We can skip the entire left segment if this is out of range
-
- 000002D5  8B C3				mov eax, ebx
- 000002D7  2B 05 00000259 R			sub eax, boardLength
- 000002DD  48					dec eax
+ 000002D6  8B C3				mov eax, ebx
+ 000002D8  2B 05 00000259 R			sub eax, boardLength
 
  000002DE  83 3C 85				cmp board[eax * 4], MINE_IDX
 	   0000026D R 09
- 000002E6  75 01				jne checkLeft
+ 000002E6  75 01				jne checkUpLeft
 
  000002E8  41					inc ecx
 
- 000002E9				checkLeft:
+ 000002E9				checkUpLeft:
+						checkUL boardlength
+ 000002E9  8B C3	     1	mov eax, ebx
+ 000002EB  99		     1	cdq
+ 000002EC  F7 35 00000259 R  1	div boardlength
+ 000002F2  83 FA 00	     1	cmp edx, 0
+ 000002F5  83 FA 00				cmp edx, 0
+ 000002F8  74 54				je checkDown ;We can skip the entire left segment if this is out of range
+
+ 000002FA  8B C3				mov eax, ebx
+ 000002FC  2B 05 00000259 R			sub eax, boardLength
+ 00000302  48					dec eax
+
+ 00000303  83 3C 85				cmp board[eax * 4], MINE_IDX
+	   0000026D R 09
+ 0000030B  75 01				jne checkLeft
+
+ 0000030D  41					inc ecx
+
+ 0000030E				checkLeft:
 
 						; Sets eax to starting address
 						checkL boardlength
- 000002E9  8B C3	     1	mov eax, ebx
- 000002EB  99		     1	cdq
- 000002EC  F7 35 00000259 R  1	div boardlength; Dividing to check if it is out of range
+ 0000030E  8B C3	     1	mov eax, ebx
+ 00000310  99		     1	cdq
+ 00000311  F7 35 00000259 R  1	div boardlength; Dividing to check if it is out of range
 						
- 000002F2  83 FA 00				cmp edx, 0
- 000002F5  74 32				je checkDown; If it is out of range, jump to the next check
+ 00000317  83 FA 00				cmp edx, 0
+ 0000031A  74 32				je checkDown; If it is out of range, jump to the next check
 
- 000002F7  8B C3				mov eax, ebx
- 000002F9  48					dec eax
+ 0000031C  8B C3				mov eax, ebx
+ 0000031E  48					dec eax
 
 						; Check if the space is a mine
- 000002FA  83 3C 85				cmp board[eax * 4], MINE_IDX
+ 0000031F  83 3C 85				cmp board[eax * 4], MINE_IDX
 	   0000026D R 09
- 00000302  75 01				jne checkDownLeft; if it is not a mine, jump to next check
+ 00000327  75 01				jne checkDownLeft; if it is not a mine, jump to next check
 
- 00000304  41					inc ecx; increment the mine counter
+ 00000329  41					inc ecx; increment the mine counter
 					
- 00000305				checkDownLeft:
+ 0000032A				checkDownLeft:
 
 						checkDL boardlength
- 00000305  8B C3	     1	mov eax, ebx
- 00000307  03 05 00000259 R  1	add eax, boardlength
- 0000030D  3B 05 00000255 R			cmp eax, boardsize
- 00000313  7F 5A				jg finishedCheck ;if this check fails, none of the downward checks would succeed
+ 0000032A  8B C3	     1	mov eax, ebx
+ 0000032C  03 05 00000259 R  1	add eax, boardlength
+ 00000332  3B 05 00000255 R			cmp eax, boardsize
+ 00000338  7F 5A				jg finishedCheck ;if this check fails, none of the downward checks would succeed
 
- 00000315  8B C3				mov eax, ebx
- 00000317  03 05 00000259 R			add eax, boardlength
- 0000031D  48					dec eax
+ 0000033A  8B C3				mov eax, ebx
+ 0000033C  03 05 00000259 R			add eax, boardlength
+ 00000342  48					dec eax
 
- 0000031E  83 3C 85				cmp board[eax * 4], MINE_IDX
+ 00000343  83 3C 85				cmp board[eax * 4], MINE_IDX
 	   0000026D R 09
- 00000326  75 01				jne checkDown
+ 0000034B  75 01				jne checkDown
 
- 00000328  41					inc ecx
+ 0000034D  41					inc ecx
 
 
- 00000329				checkDown:
+ 0000034E				checkDown:
 
 						checkD boardlength
- 00000329  8B C3	     1	mov eax, ebx
- 0000032B  03 05 00000259 R  1	add eax, boardlength
+ 0000034E  8B C3	     1	mov eax, ebx
+ 00000350  03 05 00000259 R  1	add eax, boardlength
 
 						; Range check
- 00000331  3B 05 00000255 R			cmp eax, boardsize
- 00000337  7F 36				jg finishedCheck; if this check fails, none of the downward checks would succeed
+ 00000356  3B 05 00000255 R			cmp eax, boardsize
+ 0000035C  7F 36				jg finishedCheck; if this check fails, none of the downward checks would succeed
 
- 00000339  8B C3				mov eax, ebx
- 0000033B  03 05 00000259 R			add eax, boardlength
+ 0000035E  8B C3				mov eax, ebx
+ 00000360  03 05 00000259 R			add eax, boardlength
 
- 00000341  83 3C 85				cmp board[eax * 4], MINE_IDX
+ 00000366  83 3C 85				cmp board[eax * 4], MINE_IDX
 	   0000026D R 09
- 00000349  75 01				jne checkDownRight
+ 0000036E  75 01				jne checkDownRight
 
- 0000034B  41					inc ecx
+ 00000370  41					inc ecx
 
- 0000034C				checkDownRight:
+ 00000371				checkDownRight:
 						checkDR boardlength
- 0000034C  8B C3	     1	mov eax, ebx
- 0000034E  40		     1	inc eax
- 0000034F  99		     1	cdq
- 00000350  F7 35 00000259 R  1	div boardlength; Dividing to check if it is out of range
- 00000356  83 FA 00				cmp edx, 0
- 00000359  74 14				je finishedCheck; If it is out of range, jump to up(UpRight will also be out of range)
+ 00000371  8B C3	     1	mov eax, ebx
+ 00000373  40		     1	inc eax
+ 00000374  99		     1	cdq
+ 00000375  F7 35 00000259 R  1	div boardlength; Dividing to check if it is out of range
+ 0000037B  83 FA 00				cmp edx, 0
+ 0000037E  74 14				je finishedCheck; If it is out of range, jump to up(UpRight will also be out of range)
 
- 0000035B  8B C3				mov eax, ebx
- 0000035D  40					inc eax
- 0000035E  03 05 00000259 R			add eax, boardLength
+ 00000380  8B C3				mov eax, ebx
+ 00000382  40					inc eax
+ 00000383  03 05 00000259 R			add eax, boardLength
 
 						; Check if the space is a mine
- 00000364  83 3C 85				cmp board[eax * 4], MINE_IDX
+ 00000389  83 3C 85				cmp board[eax * 4], MINE_IDX
 	   0000026D R 09
- 0000036C  75 01				jne finishedCheck; if it is not a mine, jump to next check
+ 00000391  75 01				jne finishedCheck; if it is not a mine, jump to next check
 
- 0000036E  41					inc ecx; increment the mine counter
+ 00000393  41					inc ecx; increment the mine counter
 
- 0000036F				finishedCheck:
+ 00000394				finishedCheck:
 
 						; mov eax, ecx
 						; call writeint
@@ -664,134 +679,134 @@ Microsoft (R) Macro Assembler Version 14.35.32215.0	    06/11/23 14:12:16
 						;call crlf
 
 
- 0000036F  89 0C 9D				mov board[ebx * 4], ecx
+ 00000394  89 0C 9D				mov board[ebx * 4], ecx
 	   0000026D R
- 00000376  83 F9 00				cmp ecx, 0
- 00000379  0F 85 000000EB			jne done ;if it is higher than 0, no need to call the recursive check
+ 0000039B  83 F9 00				cmp ecx, 0
+ 0000039E  0F 85 000000EB			jne done ;if it is higher than 0, no need to call the recursive check
 						
- 0000037F				rightRec:
+ 000003A4				rightRec:
 						checkR boardlength
- 0000037F  8B C3	     1		mov eax, ebx
- 00000381  40		     1		inc eax
- 00000382  99		     1		cdq
- 00000383  F7 35 00000259 R  1		div boardlength; Dividing to check if it is out of range
- 00000389  83 FA 00				cmp edx, 0
- 0000038C  74 26				je upRec
- 0000038E  B8 00000001				mov eax, 1
- 00000393  03 C3				add eax, ebx
- 00000395  50					push eax
- 00000396  E8 FFFFFEA8				call checkLocation
- 0000039B				upRightRec:
+ 000003A4  8B C3	     1		mov eax, ebx
+ 000003A6  40		     1		inc eax
+ 000003A7  99		     1		cdq
+ 000003A8  F7 35 00000259 R  1		div boardlength; Dividing to check if it is out of range
+ 000003AE  83 FA 00				cmp edx, 0
+ 000003B1  74 26				je upRec
+ 000003B3  B8 00000001				mov eax, 1
+ 000003B8  03 C3				add eax, ebx
+ 000003BA  50					push eax
+ 000003BB  E8 FFFFFEA8				call checkLocation
+ 000003C0				upRightRec:
 						checkUR boardlength
- 0000039B  8B C3	     1	mov eax, ebx
- 0000039D  3B 05 00000259 R			cmp eax, boardlength
- 000003A3  7C 47				jl leftRec
- 000003A5  8B C3				mov eax, ebx
- 000003A7  2B 05 00000259 R			sub eax, boardlength
- 000003AD  40					inc eax
- 000003AE  50					push eax
- 000003AF  E8 FFFFFE8F				call checkLocation
- 000003B4				upRec:
+ 000003C0  8B C3	     1	mov eax, ebx
+ 000003C2  3B 05 00000259 R			cmp eax, boardlength
+ 000003C8  7C 47				jl leftRec
+ 000003CA  8B C3				mov eax, ebx
+ 000003CC  2B 05 00000259 R			sub eax, boardlength
+ 000003D2  40					inc eax
+ 000003D3  50					push eax
+ 000003D4  E8 FFFFFE8F				call checkLocation
+ 000003D9				upRec:
 						checkUR boardlength
- 000003B4  8B C3	     1	mov eax, ebx
- 000003B6  3B 05 00000259 R			cmp eax, boardlength
- 000003BC  7C 2E				jl leftRec
- 000003BE  8B C3				mov eax, ebx
- 000003C0  2B 05 00000259 R			sub eax, boardlength
- 000003C6  50					push eax
- 000003C7  E8 FFFFFE77				call checkLocation
- 000003CC				upLeftRec:
+ 000003D9  8B C3	     1	mov eax, ebx
+ 000003DB  3B 05 00000259 R			cmp eax, boardlength
+ 000003E1  7C 2E				jl leftRec
+ 000003E3  8B C3				mov eax, ebx
+ 000003E5  2B 05 00000259 R			sub eax, boardlength
+ 000003EB  50					push eax
+ 000003EC  E8 FFFFFE77				call checkLocation
+ 000003F1				upLeftRec:
 						checkUL boardlength
- 000003CC  8B C3	     1	mov eax, ebx
- 000003CE  99		     1	cdq
- 000003CF  F7 35 00000259 R  1	div boardlength
- 000003D5  83 FA 00	     1	cmp edx, 0
- 000003D8  83 FA 00				cmp edx, 0
- 000003DB  74 45				je downRec
- 000003DD  8B C3				mov eax, ebx
- 000003DF  2B 05 00000259 R			sub eax, boardlength
- 000003E5  48					dec eax
- 000003E6  50					push eax
- 000003E7  E8 FFFFFE57				call checklocation
- 000003EC				leftRec:
+ 000003F1  8B C3	     1	mov eax, ebx
+ 000003F3  99		     1	cdq
+ 000003F4  F7 35 00000259 R  1	div boardlength
+ 000003FA  83 FA 00	     1	cmp edx, 0
+ 000003FD  83 FA 00				cmp edx, 0
+ 00000400  74 45				je downRec
+ 00000402  8B C3				mov eax, ebx
+ 00000404  2B 05 00000259 R			sub eax, boardlength
+ 0000040A  48					dec eax
+ 0000040B  50					push eax
+ 0000040C  E8 FFFFFE57				call checklocation
+ 00000411				leftRec:
 						checkL boardlength
- 000003EC  8B C3	     1	mov eax, ebx
- 000003EE  99		     1	cdq
- 000003EF  F7 35 00000259 R  1	div boardlength; Dividing to check if it is out of range
- 000003F5  83 FA 00				cmp edx, 0
- 000003F8  74 28				je downRec
- 000003FA  8B C3				mov eax, ebx
- 000003FC  48					dec eax
- 000003FD  50					push eax
- 000003FE  E8 FFFFFE40				call checklocation
- 00000403				downLeftRec:
+ 00000411  8B C3	     1	mov eax, ebx
+ 00000413  99		     1	cdq
+ 00000414  F7 35 00000259 R  1	div boardlength; Dividing to check if it is out of range
+ 0000041A  83 FA 00				cmp edx, 0
+ 0000041D  74 28				je downRec
+ 0000041F  8B C3				mov eax, ebx
+ 00000421  48					dec eax
+ 00000422  50					push eax
+ 00000423  E8 FFFFFE40				call checklocation
+ 00000428				downLeftRec:
 						checkDL boardlength
- 00000403  8B C3	     1	mov eax, ebx
- 00000405  03 05 00000259 R  1	add eax, boardlength
- 0000040B  3B 05 00000255 R			cmp eax, boardsize
- 00000411  7F 57				jg done
- 00000413  8B C3				mov eax, ebx
- 00000415  03 05 00000259 R			add eax, boardlength
- 0000041B  48					dec eax
- 0000041C  50					push eax
- 0000041D  E8 FFFFFE21				call checklocation
- 00000422				downRec:
+ 00000428  8B C3	     1	mov eax, ebx
+ 0000042A  03 05 00000259 R  1	add eax, boardlength
+ 00000430  3B 05 00000255 R			cmp eax, boardsize
+ 00000436  7F 57				jg done
+ 00000438  8B C3				mov eax, ebx
+ 0000043A  03 05 00000259 R			add eax, boardlength
+ 00000440  48					dec eax
+ 00000441  50					push eax
+ 00000442  E8 FFFFFE21				call checklocation
+ 00000447				downRec:
 						checkDL boardlength
- 00000422  8B C3	     1	mov eax, ebx
- 00000424  03 05 00000259 R  1	add eax, boardlength
- 0000042A  3B 05 00000255 R			cmp eax, boardsize
- 00000430  7F 38				jg done
- 00000432  8B C3				mov eax, ebx
- 00000434  03 05 00000259 R			add eax, boardlength
- 0000043A  50					push eax
- 0000043B  E8 FFFFFE03				call checklocation
- 00000440				downRightRec:
+ 00000447  8B C3	     1	mov eax, ebx
+ 00000449  03 05 00000259 R  1	add eax, boardlength
+ 0000044F  3B 05 00000255 R			cmp eax, boardsize
+ 00000455  7F 38				jg done
+ 00000457  8B C3				mov eax, ebx
+ 00000459  03 05 00000259 R			add eax, boardlength
+ 0000045F  50					push eax
+ 00000460  E8 FFFFFE03				call checklocation
+ 00000465				downRightRec:
 						checkDR boardlength
- 00000440  8B C3	     1	mov eax, ebx
- 00000442  40		     1	inc eax
- 00000443  99		     1	cdq
- 00000444  F7 35 00000259 R  1	div boardlength; Dividing to check if it is out of range
- 0000044A  83 FA 00				cmp edx, 0
- 0000044D  74 1B				je done
- 0000044F  8B C3				mov eax, ebx
- 00000451  03 05 00000259 R			add eax, boardlength
- 00000457  40					inc eax
- 00000458  50					push eax
- 00000459  E8 FFFFFDE5				call checklocation
+ 00000465  8B C3	     1	mov eax, ebx
+ 00000467  40		     1	inc eax
+ 00000468  99		     1	cdq
+ 00000469  F7 35 00000259 R  1	div boardlength; Dividing to check if it is out of range
+ 0000046F  83 FA 00				cmp edx, 0
+ 00000472  74 1B				je done
+ 00000474  8B C3				mov eax, ebx
+ 00000476  03 05 00000259 R			add eax, boardlength
+ 0000047C  40					inc eax
+ 0000047D  50					push eax
+ 0000047E  E8 FFFFFDE5				call checklocation
 
- 0000045E  EB 0A			jmp done
+ 00000483  EB 0A			jmp done
 
- 00000460				died:
- 00000460  C7 05 00000265 R			mov game_state, 0
+ 00000485				died:
+ 00000485  C7 05 00000265 R			mov game_state, 0
 	   00000000
 
- 0000046A				done:
+ 0000048F				done:
 
- 0000046A  61				popad
- 0000046B  C2 0004			ret 4
- 0000046E			checkLocation ENDP
+ 0000048F  61				popad
+ 00000490  C2 0004			ret 4
+ 00000493			checkLocation ENDP
 
 
- 0000046E			checkWin PROC
- 0000046E  60				pushad
- 0000046F  8B 0D 00000255 R		mov ecx, boardsize
- 00000475  49				dec ecx
- 00000476  B8 00000000			mov eax, 0
+ 00000493			checkWin PROC
+ 00000493  60				pushad
+ 00000494  8B 0D 00000255 R		mov ecx, boardsize
+ 0000049A  49				dec ecx
+ 0000049B  B8 00000000			mov eax, 0
 
- 0000047B				checkLoop:
- 0000047B  83 3C 8D				cmp board[ecx * 4], 10
+ 000004A0				checkLoop:
+ 000004A0  83 3C 8D				cmp board[ecx * 4], 10
 	   0000026D R 0A
- 00000483  74 0C				je continueGame
- 00000485  E2 F4				loop checkLoop
+ 000004A8  74 0C				je continueGame
+ 000004AA  E2 F4				loop checkLoop
 
- 00000487  C7 05 00000265 R		mov game_state, 2
+ 000004AC  C7 05 00000265 R		mov game_state, 2
 	   00000002
 
- 00000491				continueGame:
+ 000004B6				continueGame:
 
- 00000491  61				popad
- 00000492  C3				ret
- 00000493			checkWin ENDP
+ 000004B6  61				popad
+ 000004B7  C3				ret
+ 000004B8			checkWin ENDP
 
 				; ******************************************************************************************************
 				; DisplayBoard PROCEDURE :
@@ -804,137 +819,132 @@ Microsoft (R) Macro Assembler Version 14.35.32215.0	    06/11/23 14:12:16
 				; Registers Changed : N / A
 				; ******************************************************************************************************
 
- 00000493			DisplayBoard PROC
- 00000493  55				push EBP
- 00000494  8B EC			mov EBP, ESP
- 00000496  60				pushad
+ 000004B8			DisplayBoard PROC
+ 000004B8  55				push EBP
+ 000004B9  8B EC			mov EBP, ESP
+ 000004BB  60				pushad
 
- 00000497  8B 5D 0C			mov EBX, [EBP + 12]; game_state in EBX
- 0000049A  8B 4D 08			mov ECX, [EBP + 8]; boardlength in ECX
+ 000004BC  8B 5D 0C			mov EBX, [EBP + 12]; game_state in EBX
+ 000004BF  8B 4D 08			mov ECX, [EBP + 8]; boardlength in ECX
 
- 0000049D  B8 00000001			mov EAX, 1; starting index
+ 000004C2  B8 00000001			mov EAX, 1; starting index
 
 					; whitespace
- 000004A2  BA 0000107D R		mov EDX, OFFSET space1
- 000004A7  E8 00000000 E		call WriteString
- 000004AC  BA 0000108B R		mov EDX, OFFSET space2
- 000004B1  E8 00000000 E		call WriteString
- 000004B6  BA 00001083 R		mov EDX, OFFSET line
- 000004BB  E8 00000000 E		call WriteString
+ 000004C7  BA 0000107D R		mov EDX, OFFSET space1
+ 000004CC  E8 00000000 E		call WriteString
+ 000004D1  BA 0000108B R		mov EDX, OFFSET space2
+ 000004D6  E8 00000000 E		call WriteString
+ 000004DB  BA 00001083 R		mov EDX, OFFSET line
+ 000004E0  E8 00000000 E		call WriteString
 
- 000004C0				displayTop :
- 000004C0  E8 00000000 E			call WriteDec
- 000004C5  BA 00001083 R			mov EDX, OFFSET line
- 000004CA  E8 00000000 E			call WriteString
- 000004CF  40					inc EAX
- 000004D0  E2 EE				loop displayTop
+ 000004E5				displayTop :
+ 000004E5  E8 00000000 E			call WriteDec
+ 000004EA  BA 00001083 R			mov EDX, OFFSET line
+ 000004EF  E8 00000000 E			call WriteString
+ 000004F4  40					inc EAX
+ 000004F5  E2 EE				loop displayTop
 
- 000004D2  E8 00000000 E		call crlf
- 000004D7  8B 4D 08			mov ECX, [EBP + 8]; boardlength in ECX
- 000004DA  BA 0000107D R		mov EDX, OFFSET space1
- 000004DF  E8 00000000 E		call WriteString
+ 000004F7  E8 00000000 E		call crlf
+ 000004FC  8B 4D 08			mov ECX, [EBP + 8]; boardlength in ECX
+ 000004FF  BA 0000107D R		mov EDX, OFFSET space1
+ 00000504  E8 00000000 E		call WriteString
 
- 000004E4  BA 0000108B R		mov EDX, OFFSET space2
- 000004E9  E8 00000000 E		call WriteString
- 000004EE  BA 0000108B R		mov EDX, OFFSET space2
- 000004F3  E8 00000000 E		call WriteString
+ 00000509  BA 0000108B R		mov EDX, OFFSET space2
+ 0000050E  E8 00000000 E		call WriteString
+ 00000513  BA 0000108B R		mov EDX, OFFSET space2
+ 00000518  E8 00000000 E		call WriteString
 
- 000004F8				displayTopBorder :
- 000004F8  BA 0000108B R			mov EDX, OFFSET space2
- 000004FD  E8 00000000 E			call WriteString
- 00000502  BA 00001087 R			mov EDX, OFFSET underscore
- 00000507  E8 00000000 E			call WriteString
- 0000050C  E2 EA				loop displayTopBorder
+ 0000051D				displayTopBorder :
+ 0000051D  BA 0000108B R			mov EDX, OFFSET space2
+ 00000522  E8 00000000 E			call WriteString
+ 00000527  BA 00001087 R			mov EDX, OFFSET underscore
+ 0000052C  E8 00000000 E			call WriteString
+ 00000531  E2 EA				loop displayTopBorder
 
 
- 0000050E  8B 4D 08				mov ECX, [EBP + 8] ;boardsize in ECX
- 00000511  BA 00000001				mov EDX, 1 ;index counter
- 00000516  BF 00000000				mov EDI, 0
+ 00000533  8B 4D 08				mov ECX, [EBP + 8] ;boardsize in ECX
+ 00000536  BA 00000001				mov EDX, 1 ;index counter
+ 0000053B  BF 00000000				mov EDI, 0
 
- 0000051B				outerLoop:
- 0000051B  E8 00000000 E		call crlf
+ 00000540				outerLoop:
+ 00000540  E8 00000000 E		call crlf
 
 					; side display
- 00000520  52					push EDX
-						mov EDX, space2
-Minesweeper.asm(644) : error A2022:instruction operands must be the same size
- 00000521  E8 00000000 E			call WriteString
- 00000526  5A					pop EDX
- 00000527  8B C2				mov EAX, EDX
- 00000529  E8 00000000 E			call WriteDec
- 0000052E  52					push EDX
- 0000052F  BA 00001083 R			mov EDX, OFFSET line
- 00000534  E8 00000000 E			call WriteString
- 00000539  BA 0000108B R			mov EDX, OFFSET space2
- 0000053E  E8 00000000 E			call WriteString
- 00000543  BA 0000108B R			mov EDX, OFFSET space2
- 00000548  E8 00000000 E			call WriteString
+ 00000545  8B C2				mov EAX, EDX
+ 00000547  E8 00000000 E			call WriteDec
+ 0000054C  52					push EDX
  0000054D  BA 00001083 R			mov EDX, OFFSET line
  00000552  E8 00000000 E			call WriteString
- 00000557  5A					pop EDX
+ 00000557  BA 0000108B R			mov EDX, OFFSET space2
+ 0000055C  E8 00000000 E			call WriteString
+ 00000561  BA 0000108B R			mov EDX, OFFSET space2
+ 00000566  E8 00000000 E			call WriteString
+ 0000056B  BA 00001083 R			mov EDX, OFFSET line
+ 00000570  E8 00000000 E			call WriteString
+ 00000575  5A					pop EDX
 
 						; set up inner loop counter
- 00000558  51					push ECX
- 00000559  8B 4D 08				mov ECX, [EBP + 8]
+ 00000576  51					push ECX
+ 00000577  8B 4D 08				mov ECX, [EBP + 8]
 
- 00000567				innerLoop:
+ 0000057A				innerLoop:
 					; value check control structure
- 00000567  8B 06			mov EAX, [ESI]
+ 0000057A  8B 06			mov EAX, [ESI]
 					;call WriteDec
- 00000569  83 F8 0A			cmp EAX, 10
- 0000056C  74 0A			je unvisited
- 0000056E  83 F8 09			cmp EAX, 9
- 00000571  7C 28			jl cleared
+ 0000057C  83 F8 0A			cmp EAX, 10
+ 0000057F  74 0A			je unvisited
+ 00000581  83 F8 09			cmp EAX, 9
+ 00000584  7C 28			jl cleared
 
 						; check if game is over
- 00000573  83 FB 01				cmp EBX, 1
- 00000576  7C 36				jl gameOver
+ 00000586  83 FB 01				cmp EBX, 1
+ 00000589  7C 36				jl gameOver
 
- 00000578				unvisited :
+ 0000058B				unvisited :
 						; display mine on unfinished game as empty or unvisited block
- 00000578  52					push EDX
- 00000579  BA 0000108B R			mov EDX, OFFSET space2
- 0000057E  E8 00000000 E			call WriteString
- 00000583  BA 00001083 R			mov EDX, OFFSET line
- 00000588  E8 00000000 E			call WriteString
- 0000058D  5A					pop EDX
+ 0000058B  52					push EDX
+ 0000058C  BA 0000108B R			mov EDX, OFFSET space2
+ 00000591  E8 00000000 E			call WriteString
+ 00000596  BA 00001083 R			mov EDX, OFFSET line
+ 0000059B  E8 00000000 E			call WriteString
+ 000005A0  5A					pop EDX
 
- 0000058E  EB 00				jmp endOfLoop
+ 000005A1  EB 00				jmp endOfLoop
 
- 00000590				endOfLoop :
- 00000590  83 C6 04			add ESI, 4
- 00000593  E2 D2			loop innerLoop
+ 000005A3				endOfLoop :
+ 000005A3  83 C6 04			add ESI, 4
+ 000005A6  E2 D2			loop innerLoop
 
 					; go into outer loop
- 00000595  42					inc EDX
- 00000596  59					pop ECX
- 00000597  E2 82				loop outerLoop
- 00000599  EB 2B				jmp endOfProc
+ 000005A8  42					inc EDX
+ 000005A9  59					pop ECX
+ 000005AA  E2 94				loop outerLoop
+ 000005AC  EB 2B				jmp endOfProc
 
- 0000059B				cleared :
- 0000059B  E8 00000000 E		call WriteDec
- 000005A0  52				push edx
- 000005A1  BA 00001083 R		mov EDX, OFFSET line
- 000005A6  E8 00000000 E		call WriteString
- 000005AB  5A				pop edx
- 000005AC  EB E2			jmp endOfLoop
+ 000005AE				cleared :
+ 000005AE  E8 00000000 E		call WriteDec
+ 000005B3  52				push edx
+ 000005B4  BA 00001083 R		mov EDX, OFFSET line
+ 000005B9  E8 00000000 E		call WriteString
+ 000005BE  5A				pop edx
+ 000005BF  EB E2			jmp endOfLoop
 
- 000005AE				gameOver :
- 000005AE  52				push EDX
- 000005AF  BA 0000108D R		mov EDX, OFFSET mine
- 000005B4  E8 00000000 E		call WriteString
- 000005B9  BA 00001083 R		mov EDX, OFFSET line
- 000005BE  E8 00000000 E		call WriteString
- 000005C3  5A				pop EDX
- 000005C4  EB CA			jmp endOfLoop
+ 000005C1				gameOver :
+ 000005C1  52				push EDX
+ 000005C2  BA 0000108D R		mov EDX, OFFSET mine
+ 000005C7  E8 00000000 E		call WriteString
+ 000005CC  BA 00001083 R		mov EDX, OFFSET line
+ 000005D1  E8 00000000 E		call WriteString
+ 000005D6  5A				pop EDX
+ 000005D7  EB CA			jmp endOfLoop
 
 
 
- 000005C6				endOfProc:
- 000005C6  61				popad
- 000005C7  5D				pop EBP
- 000005C8  C2 0010			ret 16
- 000005CB			DisplayBoard ENDP
+ 000005D9				endOfProc:
+ 000005D9  61				popad
+ 000005DA  5D				pop EBP
+ 000005DB  C2 0010			ret 16
+ 000005DE			DisplayBoard ENDP
 
 
 
@@ -948,21 +958,21 @@ Minesweeper.asm(644) : error A2022:instruction operands must be the same size
 				; Registers Changed : edx,
 				; ******************************************************************************************************
 
- 000005CB			farewell PROC
+ 000005DE			farewell PROC
 				; say goodbye
 
- 000005CB  E8 00000000 E	call CrLf
- 000005D0  BA 00000225 R	mov	edx, OFFSET goodbye
- 000005D5  E8 00000000 E	call WriteString
- 000005DA  E8 00000000 E	call CrLf
- 000005DF  E8 00000000 E	call CrLf
+ 000005DE  E8 00000000 E	call CrLf
+ 000005E3  BA 00000225 R	mov	edx, OFFSET goodbye
+ 000005E8  E8 00000000 E	call WriteString
+ 000005ED  E8 00000000 E	call CrLf
+ 000005F2  E8 00000000 E	call CrLf
 				exit
- 000005E4  6A 00	   *	    push   +000000000h
- 000005E6  E8 00000000 E   *	    call   ExitProcess
- 000005EB			farewell ENDP
+ 000005F7  6A 00	   *	    push   +000000000h
+ 000005F9  E8 00000000 E   *	    call   ExitProcess
+ 000005FE			farewell ENDP
 
 				END main
-Microsoft (R) Macro Assembler Version 14.35.32215.0	    06/11/23 14:12:16
+Microsoft (R) Macro Assembler Version 14.35.32215.0	    06/11/23 14:26:18
 Minesweeper(Minesweeper.asm				     Symbols 2 - 1
 
 
@@ -1071,8 +1081,8 @@ Segments and Groups:
 
 FLAT . . . . . . . . . . . . . .	GROUP
 STACK  . . . . . . . . . . . . .	32 Bit	 00001000 Para	  Stack	  'STACK'	 
-_DATA  . . . . . . . . . . . . .	32 Bit	 0000108F Para	  Public  'DATA'	
-_TEXT  . . . . . . . . . . . . .	32 Bit	 000005EB Para	  Public  'CODE'	
+_DATA  . . . . . . . . . . . . .	32 Bit	 000010A3 Para	  Public  'DATA'	
+_TEXT  . . . . . . . . . . . . .	32 Bit	 000005FE Para	  Public  'CODE'	
 
 
 Procedures, parameters, and locals:
@@ -1086,16 +1096,16 @@ CreateFileA  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External
 CreateOutputFile . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 Crlf . . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 Delay  . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
-DisplayBoard . . . . . . . . . .	P Near	 00000493 _TEXT	Length= 00000138 Public STDCALL
-  displayTop . . . . . . . . . .	L Near	 000004C0 _TEXT	
-  displayTopBorder . . . . . . .	L Near	 000004F8 _TEXT	
-  outerLoop  . . . . . . . . . .	L Near	 0000051B _TEXT	
-  innerLoop  . . . . . . . . . .	L Near	 00000567 _TEXT	
-  unvisited  . . . . . . . . . .	L Near	 00000578 _TEXT	
-  endOfLoop  . . . . . . . . . .	L Near	 00000590 _TEXT	
-  cleared  . . . . . . . . . . .	L Near	 0000059B _TEXT	
-  gameOver . . . . . . . . . . .	L Near	 000005AE _TEXT	
-  endOfProc  . . . . . . . . . .	L Near	 000005C6 _TEXT	
+DisplayBoard . . . . . . . . . .	P Near	 000004B8 _TEXT	Length= 00000126 Public STDCALL
+  displayTop . . . . . . . . . .	L Near	 000004E5 _TEXT	
+  displayTopBorder . . . . . . .	L Near	 0000051D _TEXT	
+  outerLoop  . . . . . . . . . .	L Near	 00000540 _TEXT	
+  innerLoop  . . . . . . . . . .	L Near	 0000057A _TEXT	
+  unvisited  . . . . . . . . . .	L Near	 0000058B _TEXT	
+  endOfLoop  . . . . . . . . . .	L Near	 000005A3 _TEXT	
+  cleared  . . . . . . . . . . .	L Near	 000005AE _TEXT	
+  gameOver . . . . . . . . . . .	L Near	 000005C1 _TEXT	
+  endOfProc  . . . . . . . . . .	L Near	 000005D9 _TEXT	
 DumpMem  . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 DumpRegs . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 ExitProcess  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
@@ -1189,51 +1199,51 @@ WriteStackFrame  . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External
 WriteString  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 WriteToFile  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 WriteWindowsMsg  . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
-checkLocation  . . . . . . . . .	P Near	 00000243 _TEXT	Length= 0000022B Public STDCALL
-  checkRight . . . . . . . . . .	L Near	 0000026C _TEXT	
-  checkUpRight . . . . . . . . .	L Near	 00000289 _TEXT	
-  checkUp  . . . . . . . . . . .	L Near	 000002A7 _TEXT	
-  checkUpLeft  . . . . . . . . .	L Near	 000002C4 _TEXT	
-  checkLeft  . . . . . . . . . .	L Near	 000002E9 _TEXT	
-  checkDownLeft  . . . . . . . .	L Near	 00000305 _TEXT	
-  checkDown  . . . . . . . . . .	L Near	 00000329 _TEXT	
-  checkDownRight . . . . . . . .	L Near	 0000034C _TEXT	
-  finishedCheck  . . . . . . . .	L Near	 0000036F _TEXT	
-  rightRec . . . . . . . . . . .	L Near	 0000037F _TEXT	
-  upRightRec . . . . . . . . . .	L Near	 0000039B _TEXT	
-  upRec  . . . . . . . . . . . .	L Near	 000003B4 _TEXT	
-  upLeftRec  . . . . . . . . . .	L Near	 000003CC _TEXT	
-  leftRec  . . . . . . . . . . .	L Near	 000003EC _TEXT	
-  downLeftRec  . . . . . . . . .	L Near	 00000403 _TEXT	
-  downRec  . . . . . . . . . . .	L Near	 00000422 _TEXT	
-  downRightRec . . . . . . . . .	L Near	 00000440 _TEXT	
-  died . . . . . . . . . . . . .	L Near	 00000460 _TEXT	
-  done . . . . . . . . . . . . .	L Near	 0000046A _TEXT	
-checkWin . . . . . . . . . . . .	P Near	 0000046E _TEXT	Length= 00000025 Public STDCALL
-  checkLoop  . . . . . . . . . .	L Near	 0000047B _TEXT	
-  continueGame . . . . . . . . .	L Near	 00000491 _TEXT	
-displayList  . . . . . . . . . .	P Near	 0000009A _TEXT	Length= 0000003B Public STDCALL
-  displayLoop  . . . . . . . . .	L Near	 000000A8 _TEXT	
-  skipCarry  . . . . . . . . . .	L Near	 000000CC _TEXT	
-  endDisplayLoop . . . . . . . .	L Near	 000000D1 _TEXT	
-farewell . . . . . . . . . . . .	P Near	 000005CB _TEXT	Length= 00000020 Public STDCALL
-generation . . . . . . . . . . .	P Near	 000001A7 _TEXT	Length= 0000003C Public STDCALL
-  generateMineLoop . . . . . . .	L Near	 000001BF _TEXT	
-  nextMine . . . . . . . . . . .	L Near	 000001D2 _TEXT	
-getData  . . . . . . . . . . . .	P Near	 000000FE _TEXT	Length= 000000A9 Public STDCALL
-  getInputs  . . . . . . . . . .	L Near	 000000FF _TEXT	
-  getDifficulty  . . . . . . . .	L Near	 0000012D _TEXT	
-introduction . . . . . . . . . .	P Near	 000000D5 _TEXT	Length= 00000029 Public STDCALL
-main . . . . . . . . . . . . . .	P Near	 00000000 _TEXT	Length= 0000009A Public STDCALL
-  gameLoop . . . . . . . . . . .	L Near	 0000001B _TEXT	
-  hitMine  . . . . . . . . . . .	L Near	 00000053 _TEXT	
-  wonGame  . . . . . . . . . . .	L Near	 00000069 _TEXT	
-  done . . . . . . . . . . . . .	L Near	 0000007D _TEXT	
+checkLocation  . . . . . . . . .	P Near	 00000268 _TEXT	Length= 0000022B Public STDCALL
+  checkRight . . . . . . . . . .	L Near	 00000291 _TEXT	
+  checkUpRight . . . . . . . . .	L Near	 000002AE _TEXT	
+  checkUp  . . . . . . . . . . .	L Near	 000002CC _TEXT	
+  checkUpLeft  . . . . . . . . .	L Near	 000002E9 _TEXT	
+  checkLeft  . . . . . . . . . .	L Near	 0000030E _TEXT	
+  checkDownLeft  . . . . . . . .	L Near	 0000032A _TEXT	
+  checkDown  . . . . . . . . . .	L Near	 0000034E _TEXT	
+  checkDownRight . . . . . . . .	L Near	 00000371 _TEXT	
+  finishedCheck  . . . . . . . .	L Near	 00000394 _TEXT	
+  rightRec . . . . . . . . . . .	L Near	 000003A4 _TEXT	
+  upRightRec . . . . . . . . . .	L Near	 000003C0 _TEXT	
+  upRec  . . . . . . . . . . . .	L Near	 000003D9 _TEXT	
+  upLeftRec  . . . . . . . . . .	L Near	 000003F1 _TEXT	
+  leftRec  . . . . . . . . . . .	L Near	 00000411 _TEXT	
+  downLeftRec  . . . . . . . . .	L Near	 00000428 _TEXT	
+  downRec  . . . . . . . . . . .	L Near	 00000447 _TEXT	
+  downRightRec . . . . . . . . .	L Near	 00000465 _TEXT	
+  died . . . . . . . . . . . . .	L Near	 00000485 _TEXT	
+  done . . . . . . . . . . . . .	L Near	 0000048F _TEXT	
+checkWin . . . . . . . . . . . .	P Near	 00000493 _TEXT	Length= 00000025 Public STDCALL
+  checkLoop  . . . . . . . . . .	L Near	 000004A0 _TEXT	
+  continueGame . . . . . . . . .	L Near	 000004B6 _TEXT	
+displayList  . . . . . . . . . .	P Near	 000000BF _TEXT	Length= 0000003B Public STDCALL
+  displayLoop  . . . . . . . . .	L Near	 000000CD _TEXT	
+  skipCarry  . . . . . . . . . .	L Near	 000000F1 _TEXT	
+  endDisplayLoop . . . . . . . .	L Near	 000000F6 _TEXT	
+farewell . . . . . . . . . . . .	P Near	 000005DE _TEXT	Length= 00000020 Public STDCALL
+generation . . . . . . . . . . .	P Near	 000001CC _TEXT	Length= 0000003C Public STDCALL
+  generateMineLoop . . . . . . .	L Near	 000001E4 _TEXT	
+  nextMine . . . . . . . . . . .	L Near	 000001F7 _TEXT	
+getData  . . . . . . . . . . . .	P Near	 00000123 _TEXT	Length= 000000A9 Public STDCALL
+  getInputs  . . . . . . . . . .	L Near	 00000124 _TEXT	
+  getDifficulty  . . . . . . . .	L Near	 00000152 _TEXT	
+introduction . . . . . . . . . .	P Near	 000000FA _TEXT	Length= 00000029 Public STDCALL
+main . . . . . . . . . . . . . .	P Near	 00000000 _TEXT	Length= 000000BF Public STDCALL
+  gameLoop . . . . . . . . . . .	L Near	 00000040 _TEXT	
+  hitMine  . . . . . . . . . . .	L Near	 00000078 _TEXT	
+  wonGame  . . . . . . . . . . .	L Near	 0000008E _TEXT	
+  done . . . . . . . . . . . . .	L Near	 000000A2 _TEXT	
 printf . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
 scanf  . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
-userInput  . . . . . . . . . . .	P Near	 000001E3 _TEXT	Length= 00000060 Public STDCALL
-  getInput1  . . . . . . . . . .	L Near	 000001EE _TEXT	
-  getInput2  . . . . . . . . . .	L Near	 00000212 _TEXT	
+userInput  . . . . . . . . . . .	P Near	 00000208 _TEXT	Length= 00000060 Public STDCALL
+  getInput1  . . . . . . . . . .	L Near	 00000213 _TEXT	
+  getInput2  . . . . . . . . . .	L Near	 00000237 _TEXT	
 wsprintfA  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
 
 
@@ -1464,6 +1474,7 @@ brown  . . . . . . . . . . . . .	Number	 00000006h
 cyan . . . . . . . . . . . . . .	Number	 00000003h   
 difficulty . . . . . . . . . . .	DWord	 0000025D _DATA	
 exit . . . . . . . . . . . . . .	Text   	 INVOKE ExitProcess,0
+fpu_msg  . . . . . . . . . . . .	Byte	 00001097 _DATA	
 gameLoss . . . . . . . . . . . .	Byte	 000001CE _DATA	
 gameWin  . . . . . . . . . . . .	Byte	 000001FF _DATA	
 game_state . . . . . . . . . . .	DWord	 00000265 _DATA	
@@ -1499,7 +1510,9 @@ unvisitedCell  . . . . . . . . .	DWord	 00000251 _DATA
 welcome  . . . . . . . . . . . .	Byte	 00000000 _DATA	
 white  . . . . . . . . . . . . .	Number	 0000000Fh   
 wsprintf . . . . . . . . . . . .	Text   	 wsprintfA
+x  . . . . . . . . . . . . . . .	DWord	 0000108F _DATA	
 yellow . . . . . . . . . . . . .	Number	 0000000Eh   
+y  . . . . . . . . . . . . . . .	DWord	 00001093 _DATA	
 
 	   0 Warnings
-	   1 Errors
+	   0 Errors
