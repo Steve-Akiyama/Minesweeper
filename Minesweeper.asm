@@ -602,13 +602,13 @@ DisplayBoard PROC
 	; whitespace
 	mov EDX, OFFSET space1
 	call WriteString
+	mov EDX, OFFSET space2
+	call WriteString
 	mov EDX, OFFSET line
 	call WriteString
 
 	displayTop :
 		call WriteDec
-		mov EDX, OFFSET space2
-		call WriteString
 		mov EDX, OFFSET line
 		call WriteString
 		inc EAX
@@ -621,13 +621,13 @@ DisplayBoard PROC
 
 	mov EDX, OFFSET space2
 	call WriteString
+	mov EDX, OFFSET space2
+	call WriteString
 
 	displayTopBorder :
 		mov EDX, OFFSET space2
 		call WriteString
 		mov EDX, OFFSET underscore
-		call WriteString
-		mov EDX, OFFSET space2
 		call WriteString
 		loop displayTopBorder
 
@@ -644,6 +644,8 @@ DisplayBoard PROC
 		call WriteDec
 		push EDX
 		mov EDX, OFFSET line
+		call WriteString
+		mov EDX, OFFSET space2
 		call WriteString
 		mov EDX, OFFSET space2
 		call WriteString
