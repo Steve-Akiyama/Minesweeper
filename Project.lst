@@ -1,4 +1,4 @@
-Microsoft (R) Macro Assembler Version 14.35.32216.1	    06/10/23 16:42:12
+Microsoft (R) Macro Assembler Version 14.35.32215.0	    06/10/23 20:04:43
 Minesweeper (Minesweeper.asm				     Page 1 - 1
 
 
@@ -68,48 +68,64 @@ Microsoft (R) Macro Assembler Version 14.35.32216.1	    06/10/23 16:42:12
 	   70 65 72 21 20
 	   47 6F 6F 64 62
 	   79 65 21 00
- 000000B9 00000040		boardsize DWORD 64
- 000000BD 00000008		boardlength DWORD 8
- 000000C1 00000010		minecount DWORD 16
 
+ 000000B9 00000000		unvisitedCell   DWORD 0
+
+ 000000BD 00000040		boardsize DWORD 64
+ 000000C1 00000008		boardlength DWORD 8
+ 000000C5 00000010		minecount DWORD 16
+ 000000C9 00000001		game_state DWORD 1
 
 				; constants
  = 00000008			BOARD_MINSIZE = 8
  = 0000001E			BOARD_MAXSIZE = 30
-
+ = 00000384			MAX_BOARDSIZE = 900
 
 				; Array
- 000000C5  000000F0 [		board DWORD BOARD_MINSIZE * BOARD_MAXSIZE DUP(-1)
-	    FFFFFFFF
+ 000000CD  00000384 [		board		DWORD MAX_BOARDSIZE Dup(10)
+	    0000000A
 	   ]
+
+				;display characters
+ 00000EDD 20 20 20 20 20	space1		BYTE   "     ", 0
+	   00
+ 00000EE3 20 7C 20 00		line		BYTE   " | ", 0
+ 00000EE7 2D 2D 2D 00		underscore  BYTE   "---", 0
+ 00000EEB 20 00			space2         BYTE   " ", 0
+ 00000EED 2A 00			mine		BYTE   "*", 0
 
 
  00000000			.code
  00000000			main PROC
 
- 00000000  E8 00000036			call introduction
- 00000005  E8 0000005A			call getData
+ 00000000  E8 0000004C			call introduction
+ 00000005  E8 00000070			call getData
 
- 0000000A  A1 000000B9 R		mov eax, boardsize
+ 0000000A  A1 000000BD R		mov eax, boardsize
  0000000F  50				push eax
- 00000010  A1 000000C1 R		mov eax, minecount
+ 00000010  A1 000000C5 R		mov eax, minecount
  00000015  50				push eax
- 00000016  E8 0000007A			call generation
+ 00000016  E8 00000090			call generation
 
-					
- 0000001B				gameLoop:
- 0000001B  E8 000000A0				call userInput
- 00000020  E8 0000009C				call checkLocation
- 00000025  E8 00000098				call checkWin
- 0000002A  E8 00000094				call DisplayBoard
+ 0000001B  BE 000000CD R		mov ESI, OFFSET board
+ 00000020				gameLoop:
+ 00000020  E8 000000B1				call userInput
+ 00000025  E8 000000AD				call checkLocation
+ 0000002A  E8 000000A9				call checkWin
+
+ 0000002F  68 000000CD R			push OFFSET board
+ 00000034  FF 35 000000C9 R			push game_state
+ 0000003A  FF 35 000000C1 R			push boardlength
+ 00000040  E8 00000094				call DisplayBoard
+						
 						; Some form of jump to gameLoop if checkWin is false
 
- 0000002F  E8 00000090			call farewell
+ 00000045  E8 000001AE			call farewell
 
 				exit
- 00000034  6A 00	   *	    push   +000000000h
- 00000036  E8 00000000 E   *	    call   ExitProcess
- 0000003B			main ENDP
+ 0000004A  6A 00	   *	    push   +000000000h
+ 0000004C  E8 00000000 E   *	    call   ExitProcess
+ 00000051			main ENDP
 
 				;******************************************************************************************************
 				; INTRODUCTION PROCEDURE :
@@ -120,77 +136,209 @@ Microsoft (R) Macro Assembler Version 14.35.32216.1	    06/10/23 16:42:12
 				; Registers Changed : edx,
 				; ******************************************************************************************************
 
- 0000003B			introduction PROC
- 0000003B  E8 00000000 E		call Randomize
- 00000040  E8 00000000 E		call CrLf
- 00000045  BA 00000000 R		mov edx, OFFSET welcome
- 0000004A  E8 00000000 E		call WriteString
- 0000004F  E8 00000000 E		call CrLf
+ 00000051			introduction PROC
+ 00000051  E8 00000000 E		call Randomize
+ 00000056  E8 00000000 E		call CrLf
+ 0000005B  BA 00000000 R		mov edx, OFFSET welcome
+ 00000060  E8 00000000 E		call WriteString
+ 00000065  E8 00000000 E		call CrLf
 
- 00000054  BA 0000003D R		mov	edx, OFFSET instructions_1
- 00000059  E8 00000000 E		call WriteString
- 0000005E  E8 00000000 E		call CrLf
- 00000063  C3				ret
+ 0000006A  BA 0000003D R		mov	edx, OFFSET instructions_1
+ 0000006F  E8 00000000 E		call WriteString
+ 00000074  E8 00000000 E		call CrLf
+ 00000079  C3				ret
 
- 00000064			introduction ENDP
+ 0000007A			introduction ENDP
 
- 00000064			getData PROC
- 00000064  60				pushad
- 00000065				getInputs:
- 00000065  BA 00000069 R			mov	edx, OFFSET instructions_2
- 0000006A  E8 00000000 E			call WriteString
- 0000006F  E8 00000000 E			call crlf
- 00000074  E8 00000000 E			call ReadInt
- 00000079  83 F8 08				cmp eax, BOARD_MINSIZE
- 0000007C  7C E7				jl getInputs
- 0000007E  83 F8 1E				cmp eax, BOARD_MAXSIZE
- 00000081  7F E2				jg getInputs
- 00000083  A3 000000BD R			mov boardlength, eax
- 00000088  F7 25 000000BD R			mul boardlength
- 0000008E  A3 000000B9 R			mov boardsize, eax
- 00000093  61				popad
- 00000094  C3				ret
- 00000095			getData ENDP
+ 0000007A			getData PROC
+ 0000007A  60				pushad
+ 0000007B				getInputs:
+ 0000007B  BA 00000069 R			mov	edx, OFFSET instructions_2
+ 00000080  E8 00000000 E			call WriteString
+ 00000085  E8 00000000 E			call crlf
+ 0000008A  E8 00000000 E			call ReadInt
+ 0000008F  83 F8 08				cmp eax, BOARD_MINSIZE
+ 00000092  7C E7				jl getInputs
+ 00000094  83 F8 1E				cmp eax, BOARD_MAXSIZE
+ 00000097  7F E2				jg getInputs
+ 00000099  A3 000000C1 R			mov boardlength, eax
+ 0000009E  F7 25 000000C1 R			mul boardlength
+ 000000A4  A3 000000BD R			mov boardsize, eax
+ 000000A9  61				popad
+ 000000AA  C3				ret
+ 000000AB			getData ENDP
 
- 00000095			generation PROC
- 00000095  8B EC			mov ebp, esp
- 00000097  8B 4D 04			mov ecx, [ebp + 4] ;Address of how many mines to generate
- 0000009A  8B 5D 08			mov ebx, [ebp + 8] ;Address of how many tiles are available
- 0000009D  60				pushad
+ 000000AB			generation PROC
+ 000000AB  8B EC			mov ebp, esp
+ 000000AD  8B 4D 04			mov ecx, [ebp + 4] ;Address of how many mines to generate
+ 000000B0  8B 5D 08			mov ebx, [ebp + 8] ;Address of how many tiles are available
+ 000000B3  60				pushad
 
- 0000009E				generateMineLoop:
- 0000009E  8B C3				mov eax, ebx
- 000000A0  E8 00000000 E			call RandomRange
- 000000A5  83 3C 85				cmp board[eax * 4], -1
-	   000000C5 R FF
- 000000AD  74 02				je nextMine
- 000000AF  EB ED				jmp generateMineLoop
- 000000B1				nextMine:
- 000000B1  C7 04 85				mov board[eax * 4], 9
-	   000000C5 R
+ 000000B4				generateMineLoop:
+ 000000B4  8B C3				mov eax, ebx
+ 000000B6  E8 00000000 E			call RandomRange
+ 000000BB  83 3C 85				cmp board[eax * 4], 10
+	   000000CD R 0A
+ 000000C3  74 02				je nextMine
+ 000000C5  EB ED				jmp generateMineLoop
+ 000000C7				nextMine:
+ 000000C7  C7 04 85				mov board[eax * 4], 9
+	   000000CD R
 	   00000009
- 000000BC  E2 E0				loop generateMineLoop
+ 000000D2  E2 E0				loop generateMineLoop
 
- 000000BE  61				popad
- 000000BF  C3				ret
- 000000C0			generation ENDP
+ 000000D4  61				popad
+ 000000D5  C3				ret
+ 000000D6			generation ENDP
 
- 000000C0			userInput PROC
+ 000000D6			userInput PROC
 					
- 000000C0  C3				ret
- 000000C1			userInput ENDP
+ 000000D6  C3				ret
+ 000000D7			userInput ENDP
 
- 000000C1			checkLocation PROC
- 000000C1  C3				ret
- 000000C2			checkLocation ENDP
+ 000000D7			checkLocation PROC
+ 000000D7  C3				ret
+ 000000D8			checkLocation ENDP
 
- 000000C2			checkWin PROC
- 000000C2  C3				ret
- 000000C3			checkWin ENDP
+ 000000D8			checkWin PROC
+ 000000D8  C3				ret
+ 000000D9			checkWin ENDP
 
- 000000C3			DisplayBoard PROC
- 000000C3  C3				ret
- 000000C4			DisplayBoard ENDP
+				;******************************************************************************************************
+				; DisplayBoard PROCEDURE :
+				; Description:		 display the state of game on screen
+				; Receives:		     game_state:   1 if user is alive
+				;					 board:        array of values representing board
+				;					 board_length: n for board size n x n
+				; Returns:			 nothing
+				; Preconditions:	 board is initialized
+				; Registers Changed : N / A
+				; ******************************************************************************************************
+
+ 000000D9			DisplayBoard PROC
+ 000000D9  55				push EBP
+ 000000DA  8B EC			mov EBP, ESP
+ 000000DC  60				pushad
+
+ 000000DD  8B 5D 0C			mov EBX, [EBP + 12]  ;game_state in EBX
+ 000000E0  8B 4D 08			mov ECX, [EBP + 8]   ;boardlength in ECX
+
+ 000000E3  B8 00000001			mov EAX, 1 ;starting index
+
+					;whitespace
+ 000000E8  BA 00000EDD R		mov EDX, OFFSET space1
+ 000000ED  E8 00000000 E		call WriteString
+ 000000F2  BA 00000EE3 R		mov EDX, OFFSET line
+ 000000F7  E8 00000000 E		call WriteString
+
+ 000000FC				displayTop :
+ 000000FC  E8 00000000 E			call WriteDec
+ 00000101  BA 00000EEB R			mov EDX, OFFSET space2
+ 00000106  E8 00000000 E			call WriteString
+ 0000010B  BA 00000EE3 R			mov EDX, OFFSET line
+ 00000110  E8 00000000 E			call WriteString
+ 00000115  40					inc EAX
+ 00000116  E2 E4				loop displayTop
+
+ 00000118  E8 00000000 E		call crlf
+ 0000011D  8B 4D 08			mov ECX, [EBP + 8]; boardlength in ECX
+ 00000120  BA 00000EDD R		mov EDX, OFFSET space1
+ 00000125  E8 00000000 E		call WriteString
+ 0000012A  BA 00000EEB R		mov EDX, OFFSET space2
+ 0000012F  E8 00000000 E		call WriteString
+
+ 00000134				displayTopBorder :
+ 00000134  BA 00000EEB R			mov EDX, OFFSET space2
+ 00000139  E8 00000000 E			call WriteString
+ 0000013E  BA 00000EE7 R			mov EDX, OFFSET underscore
+ 00000143  E8 00000000 E			call WriteString
+ 00000148  BA 00000EEB R			mov EDX, OFFSET space2
+ 0000014D  E8 00000000 E			call WriteString
+ 00000152  E2 E0				loop displayTopBorder
+
+
+ 00000154  8B 4D 08			mov ECX, [EBP + 8]  ;boardsize in ECX
+ 00000157  BA 00000001			mov EDX, 1           ;index counter
+ 0000015C  BF 00000000			mov EDI, 0
+
+ 00000161				outerLoop:
+ 00000161  E8 00000000 E			call crlf
+						
+						;side display
+ 00000166  8B C2				mov EAX, EDX
+ 00000168  E8 00000000 E			call WriteDec
+ 0000016D  52					push EDX
+ 0000016E  BA 00000EE3 R			mov EDX, OFFSET line
+ 00000173  E8 00000000 E			call WriteString
+ 00000178  BA 00000EEB R			mov EDX, OFFSET space2
+ 0000017D  E8 00000000 E			call WriteString
+ 00000182  BA 00000EE3 R			mov EDX, OFFSET line
+ 00000187  E8 00000000 E			call WriteString
+ 0000018C  5A					pop EDX
+
+						;set up inner loop counter
+ 0000018D  51					push ECX
+ 0000018E  8B 4D 08				mov ECX, [EBP + 8]
+
+ 00000191					innerLoop:
+							;value check control structure
+ 00000191  8B 06					mov EAX, [ESI]
+ 00000193  E8 00000000 E				call WriteDec
+ 00000198  83 F8 00					cmp EAX, 0
+ 0000019B  74 0A					je unvisited
+ 0000019D  83 F8 09					cmp EAX, 9
+ 000001A0  7C 28					jl cleared
+
+							;check if game is over
+ 000001A2  83 FB 01					cmp EBX, 1
+ 000001A5  7C 34					jl gameOver
+
+ 000001A7						unvisited :
+								;display mine on unfinished game as empty or unvisited block
+ 000001A7  52							push EDX
+ 000001A8  BA 00000EEB R					mov EDX, OFFSET space2
+ 000001AD  E8 00000000 E					call WriteString
+ 000001B2  BA 00000EE3 R					mov EDX, OFFSET line
+ 000001B7  E8 00000000 E					call WriteString
+ 000001BC  5A							pop EDX
+
+ 000001BD  EB 00						jmp endOfLoop
+
+ 000001BF						endOfLoop :
+ 000001BF  83 C6 04						add ESI, 4
+ 000001C2  E2 CD						loop innerLoop
+
+								; go into outer loop
+ 000001C4  42							inc EDX
+ 000001C5  59							pop ECX
+ 000001C6  E2 99						loop outerLoop
+ 000001C8  EB 29						jmp endOfProc
+
+ 000001CA						cleared :
+ 000001CA  E8 00000000 E					call WriteDec
+ 000001CF  BA 00000EE3 R					mov EDX, OFFSET line
+ 000001D4  E8 00000000 E					call WriteString
+ 000001D9  EB E4						jmp endOfLoop
+
+ 000001DB						gameOver :
+ 000001DB  52							push EDX
+ 000001DC  BA 00000EED R					mov EDX, OFFSET mine
+ 000001E1  E8 00000000 E					call WriteString
+ 000001E6  BA 00000EE3 R					mov EDX, OFFSET line
+ 000001EB  E8 00000000 E					call WriteString
+ 000001F0  5A							pop EDX
+ 000001F1  EB CC						jmp endOfLoop
+
+					
+
+ 000001F3				endOfProc:
+ 000001F3  61					popad
+ 000001F4  5D					pop EBP
+ 000001F5  C2 0010				ret 16
+ 000001F8			DisplayBoard ENDP
+
+
+
 
 				;******************************************************************************************************
 				; FAREWELL PROCEDURE :
@@ -201,21 +349,21 @@ Microsoft (R) Macro Assembler Version 14.35.32216.1	    06/10/23 16:42:12
 				; Registers Changed : edx,
 				; ******************************************************************************************************
 
- 000000C4			farewell PROC
+ 000001F8			farewell PROC
 					; say goodbye
 
- 000000C4  E8 00000000 E		call CrLf
- 000000C9  BA 0000008D R		mov	edx, OFFSET goodbye
- 000000CE  E8 00000000 E		call WriteString
- 000000D3  E8 00000000 E		call CrLf
- 000000D8  E8 00000000 E		call CrLf
+ 000001F8  E8 00000000 E		call CrLf
+ 000001FD  BA 0000008D R		mov	edx, OFFSET goodbye
+ 00000202  E8 00000000 E		call WriteString
+ 00000207  E8 00000000 E		call CrLf
+ 0000020C  E8 00000000 E		call CrLf
 					exit
- 000000DD  6A 00	   *	    push   +000000000h
- 000000DF  E8 00000000 E   *	    call   ExitProcess
- 000000E4			farewell ENDP
+ 00000211  6A 00	   *	    push   +000000000h
+ 00000213  E8 00000000 E   *	    call   ExitProcess
+ 00000218			farewell ENDP
 
 				END main
-Microsoft (R) Macro Assembler Version 14.35.32216.1	    06/10/23 16:42:12
+Microsoft (R) Macro Assembler Version 14.35.32215.0	    06/10/23 20:04:43
 Minesweeper (Minesweeper.asm				     Symbols 2 - 1
 
 
@@ -309,8 +457,8 @@ Segments and Groups:
 
 FLAT . . . . . . . . . . . . . .	GROUP
 STACK  . . . . . . . . . . . . .	32 Bit	 00001000 Para	  Stack	  'STACK'	 
-_DATA  . . . . . . . . . . . . .	32 Bit	 00000485 Para	  Public  'DATA'	
-_TEXT  . . . . . . . . . . . . .	32 Bit	 000000E4 Para	  Public  'CODE'	
+_DATA  . . . . . . . . . . . . .	32 Bit	 00000EEF Para	  Public  'DATA'	
+_TEXT  . . . . . . . . . . . . .	32 Bit	 00000218 Para	  Public  'CODE'	
 
 
 Procedures, parameters, and locals:
@@ -324,7 +472,16 @@ CreateFileA  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External
 CreateOutputFile . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 Crlf . . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 Delay  . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
-DisplayBoard . . . . . . . . . .	P Near	 000000C3 _TEXT	Length= 00000001 Public STDCALL
+DisplayBoard . . . . . . . . . .	P Near	 000000D9 _TEXT	Length= 0000011F Public STDCALL
+  displayTop . . . . . . . . . .	L Near	 000000FC _TEXT	
+  displayTopBorder . . . . . . .	L Near	 00000134 _TEXT	
+  outerLoop  . . . . . . . . . .	L Near	 00000161 _TEXT	
+  innerLoop  . . . . . . . . . .	L Near	 00000191 _TEXT	
+  unvisited  . . . . . . . . . .	L Near	 000001A7 _TEXT	
+  endOfLoop  . . . . . . . . . .	L Near	 000001BF _TEXT	
+  cleared  . . . . . . . . . . .	L Near	 000001CA _TEXT	
+  gameOver . . . . . . . . . . .	L Near	 000001DB _TEXT	
+  endOfProc  . . . . . . . . . .	L Near	 000001F3 _TEXT	
 DumpMem  . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 DumpRegs . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 ExitProcess  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
@@ -418,20 +575,20 @@ WriteStackFrame  . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External
 WriteString  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 WriteToFile  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 WriteWindowsMsg  . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
-checkLocation  . . . . . . . . .	P Near	 000000C1 _TEXT	Length= 00000001 Public STDCALL
-checkWin . . . . . . . . . . . .	P Near	 000000C2 _TEXT	Length= 00000001 Public STDCALL
-farewell . . . . . . . . . . . .	P Near	 000000C4 _TEXT	Length= 00000020 Public STDCALL
-generation . . . . . . . . . . .	P Near	 00000095 _TEXT	Length= 0000002B Public STDCALL
-  generateMineLoop . . . . . . .	L Near	 0000009E _TEXT	
-  nextMine . . . . . . . . . . .	L Near	 000000B1 _TEXT	
-getData  . . . . . . . . . . . .	P Near	 00000064 _TEXT	Length= 00000031 Public STDCALL
-  getInputs  . . . . . . . . . .	L Near	 00000065 _TEXT	
-introduction . . . . . . . . . .	P Near	 0000003B _TEXT	Length= 00000029 Public STDCALL
-main . . . . . . . . . . . . . .	P Near	 00000000 _TEXT	Length= 0000003B Public STDCALL
-  gameLoop . . . . . . . . . . .	L Near	 0000001B _TEXT	
+checkLocation  . . . . . . . . .	P Near	 000000D7 _TEXT	Length= 00000001 Public STDCALL
+checkWin . . . . . . . . . . . .	P Near	 000000D8 _TEXT	Length= 00000001 Public STDCALL
+farewell . . . . . . . . . . . .	P Near	 000001F8 _TEXT	Length= 00000020 Public STDCALL
+generation . . . . . . . . . . .	P Near	 000000AB _TEXT	Length= 0000002B Public STDCALL
+  generateMineLoop . . . . . . .	L Near	 000000B4 _TEXT	
+  nextMine . . . . . . . . . . .	L Near	 000000C7 _TEXT	
+getData  . . . . . . . . . . . .	P Near	 0000007A _TEXT	Length= 00000031 Public STDCALL
+  getInputs  . . . . . . . . . .	L Near	 0000007B _TEXT	
+introduction . . . . . . . . . .	P Near	 00000051 _TEXT	Length= 00000029 Public STDCALL
+main . . . . . . . . . . . . . .	P Near	 00000000 _TEXT	Length= 00000051 Public STDCALL
+  gameLoop . . . . . . . . . . .	L Near	 00000020 _TEXT	
 printf . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
 scanf  . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
-userInput  . . . . . . . . . . .	P Near	 000000C0 _TEXT	Length= 00000001 Public STDCALL
+userInput  . . . . . . . . . . .	P Near	 000000D6 _TEXT	Length= 00000001 Public STDCALL
 wsprintfA  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
 
 
@@ -523,6 +680,7 @@ KEY_EVENT  . . . . . . . . . . .	Number	 00000001h
 KEY_MASKS  . . . . . . . . . . .	Number	 0000001Fh   
 LEFT_ALT_PRESSED . . . . . . . .	Number	 00000002h   
 LEFT_CTRL_PRESSED  . . . . . . .	Number	 00000008h   
+MAX_BOARDSIZE  . . . . . . . . .	Number	 00000384h   
 MB_ABORTRETRYIGNORE  . . . . . .	Number	 00000002h   
 MB_APPLMODAL . . . . . . . . . .	Number	 00000000h   
 MB_CANCELTRYCONTINUE . . . . . .	Number	 00000006h   
@@ -652,12 +810,13 @@ WriteConsoleOutputCharacter  . .	Text   	 WriteConsoleOutputCharacterA
 WriteConsole . . . . . . . . . .	Text   	 WriteConsoleA
 black  . . . . . . . . . . . . .	Number	 00000000h   
 blue . . . . . . . . . . . . . .	Number	 00000001h   
-boardlength  . . . . . . . . . .	DWord	 000000BD _DATA	
-boardsize  . . . . . . . . . . .	DWord	 000000B9 _DATA	
-board  . . . . . . . . . . . . .	DWord	 000000C5 _DATA	
+boardlength  . . . . . . . . . .	DWord	 000000C1 _DATA	
+boardsize  . . . . . . . . . . .	DWord	 000000BD _DATA	
+board  . . . . . . . . . . . . .	DWord	 000000CD _DATA	
 brown  . . . . . . . . . . . . .	Number	 00000006h   
 cyan . . . . . . . . . . . . . .	Number	 00000003h   
 exit . . . . . . . . . . . . . .	Text   	 INVOKE ExitProcess,0
+game_state . . . . . . . . . . .	DWord	 000000C9 _DATA	
 goodbye  . . . . . . . . . . . .	Byte	 0000008D _DATA	
 gray . . . . . . . . . . . . . .	Number	 00000008h   
 green  . . . . . . . . . . . . .	Number	 00000002h   
@@ -669,9 +828,15 @@ lightGray  . . . . . . . . . . .	Number	 00000007h
 lightGreen . . . . . . . . . . .	Number	 0000000Ah   
 lightMagenta . . . . . . . . . .	Number	 0000000Dh   
 lightRed . . . . . . . . . . . .	Number	 0000000Ch   
+line . . . . . . . . . . . . . .	Byte	 00000EE3 _DATA	
 magenta  . . . . . . . . . . . .	Number	 00000005h   
-minecount  . . . . . . . . . . .	DWord	 000000C1 _DATA	
+minecount  . . . . . . . . . . .	DWord	 000000C5 _DATA	
+mine . . . . . . . . . . . . . .	Byte	 00000EED _DATA	
 red  . . . . . . . . . . . . . .	Number	 00000004h   
+space1 . . . . . . . . . . . . .	Byte	 00000EDD _DATA	
+space2 . . . . . . . . . . . . .	Byte	 00000EEB _DATA	
+underscore . . . . . . . . . . .	Byte	 00000EE7 _DATA	
+unvisitedCell  . . . . . . . . .	DWord	 000000B9 _DATA	
 welcome  . . . . . . . . . . . .	Byte	 00000000 _DATA	
 white  . . . . . . . . . . . . .	Number	 0000000Fh   
 wsprintf . . . . . . . . . . . .	Text   	 wsprintfA
