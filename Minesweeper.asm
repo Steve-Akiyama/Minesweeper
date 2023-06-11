@@ -8,6 +8,12 @@ INCLUDE Irvine32.inc
 
 .data
 
+print MACRO string
+	call crlf
+	mov edx, offset string
+	call writestring
+endm
+
 checkR MACRO boardlength
 	; Sets eax to address of right
 	mov eax, ebx
@@ -71,12 +77,21 @@ instructions_1 BYTE "Please input the board size you would like.", 0
 instructions_2 BYTE "(Enter a number between 8 and 30): ", 0
 instructions_3 BYTE "Please enter the column of the space you'd like to dig.", 0
 instructions_4 BYTE "Please enter the row of the space you'd like to dig.", 0
+instructions_5 BYTE "Please enter what difficulty you would like.", 0
+instructions_6 BYTE "1. Easy (Fewest mines)", 0
+instructions_7 BYTE "2. Medium (Standard mine count)", 0
+instructions_8 BYTE "3. Hard (High mine count)", 0
+instructions_9 BYTE "4. Extreme (Very high mine count)", 0
+instructions_10 BYTE "Please enter which difficulty you would like. (1-4)", 0
+gameLoss BYTE "Oh no! You dug up a mine. Better luck next time!", 0
+gameWin BYTE "Congrats! You survived the minefield.", 0
 goodbye BYTE "Thank you for playing Minesweeper! Goodbye!", 0
 
 unvisitedCell   DWORD 0
 
 boardsize DWORD 64
 boardlength DWORD 8
+difficulty DWORD 1
 minecount DWORD 10
 game_state DWORD 1
 target DWORD ?
@@ -105,34 +120,52 @@ main PROC
 call introduction
 call getData
 
-mov eax, boardsize
-push eax
-mov eax, minecount
-push eax
-call generation
+	mov eax, boardsize
+	push eax
+	mov eax, difficulty
+	push eax
+	call generation
+	
+	gameLoop :
 
-mov ESI, OFFSET board
-gameLoop :
+		;push OFFSET board
+		;push boardsize
+		;call displayList
+		mov ESI, OFFSET board
+		push game_state
+		push boardlength
+		call DisplayBoard
 
+		call userInput
 
-push OFFSET board
-push boardsize
-call displayList
+		push target
+		call checkLocation
 
-; push game_state
-; push boardlength
-; call DisplayBoard
-call userInput
-push target
-call checkLocation
-call checkWin
-jmp gameLoop
+		call checkWin
 
+		cmp game_state, 1
+		je gameLoop
+		jl hitMine
+		jg wonGame
 
+	hitMine:
+		call crlf
+		mov edx, offset gameLoss
+		call writestring
+		call crlf
+		jmp done
 
-; Some form of jump to gameLoop if checkWin is false
+	wonGame:
+		call crlf
+		mov edx, offset gameWin
+		call writestring
+		call crlf
 
-call farewell
+	done:
+		mov ESI, OFFSET board
+		push game_state
+		push boardlength
+		call DisplayBoard
 
 exit
 main ENDP
@@ -198,28 +231,50 @@ getData PROC
 		mov boardlength, eax
 		mul boardlength
 		mov boardsize, eax
+	getDifficulty:
+		print instructions_5
+		print instructions_6
+		print instructions_7
+		print instructions_8
+		print instructions_9
+		print instructions_10
+		call crlf
+		call readint
+		cmp eax, 1
+		jl getDifficulty
+		cmp eax, 4
+		jg getDifficulty
+		mov difficulty, eax
+		call crlf
 	popad
 	ret
 getData ENDP
 
 generation PROC
-mov ebp, esp
-mov ecx, [ebp + 4]; Address of how many mines to generate
-mov ebx, [ebp + 8]; Address of how many tiles are available
-pushad
+	mov ebp, esp
+	mov ecx, [ebp + 4]; Address of difficulty
+	mov eax, [ebp + 8]; Address of how many tiles are available
+	pushad
 
-generateMineLoop :
-mov eax, ebx
-call RandomRange
-cmp board[eax * 4], SPACE_INI
-je nextMine
-jmp generateMineLoop
-nextMine :
-mov board[eax * 4], MINE_IDX
-loop generateMineLoop
+	mov ebx, 7
+	sub ebx, ecx
+	cdq
+	div ebx
+	mov ecx, eax
+	mov ebx, [ebp + 8]
 
-popad
-ret 8
+	generateMineLoop :
+		mov eax, ebx
+		call RandomRange
+		cmp board[eax * 4], SPACE_INI
+		je nextMine
+		jmp generateMineLoop
+		nextMine :
+		mov board[eax * 4], MINE_IDX
+		loop generateMineLoop
+
+	popad
+	ret 8
 generation ENDP
 
 userInput PROC
@@ -281,7 +336,7 @@ checkLocation PROC
 	cmp board[ebx * 4], 0
 	je done ;if this tile has already been checked, then dont check it again
 	cmp board[ebx * 4], 9
-	je done ;TODO: Add a loss condition! The player hit a mine LOL
+	je died ;TODO: Add a loss condition! The player hit a mine LOL
 	
 	checkRight:
 
@@ -492,13 +547,10 @@ checkLocation PROC
 		push eax
 		call checklocation
 
+	jmp done
 
-
-
-		
-		
-
-
+	died:
+		mov game_state, 0
 
 	done:
 
@@ -508,7 +560,21 @@ checkLocation ENDP
 
 
 checkWin PROC
-	
+	pushad
+	mov ecx, boardsize
+	dec ecx
+	mov eax, 0
+
+	checkLoop:
+		cmp board[ecx * 4], 10
+		je continueGame
+		loop checkLoop
+
+	mov game_state, 2
+
+	continueGame:
+
+	popad
 	ret
 checkWin ENDP
 
@@ -591,7 +657,7 @@ DisplayBoard PROC
 	innerLoop:
 	; value check control structure
 	mov EAX, [ESI]
-	call WriteDec
+	;call WriteDec
 	cmp EAX, 10
 	je unvisited
 	cmp EAX, 9
@@ -624,8 +690,10 @@ DisplayBoard PROC
 
 	cleared :
 	call WriteDec
+	push edx
 	mov EDX, OFFSET line
 	call WriteString
+	pop edx
 	jmp endOfLoop
 
 	gameOver :
